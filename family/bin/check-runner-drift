@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+. "${SCRIPT_DIR}/../lib/common.sh"
+
+ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+WORKFLOW="${ROOT}/.github/workflows/tests.yml"
+
+findings=0
+
+usage() {
+  cat <<'USAGE'
+usage: family/bin/check-runner-drift [--calibrate]
+
+Compares the runner images this member pins against what GitHub currently
+offers, and fails when a newer generally available image exists.
+
+  --calibrate   prove the check can answer both ways before trusting it:
+                a label that cannot exist must report absent, and one that
+                certainly exists must report present
+
+Ubuntu is resolved at run time from changelogs.ubuntu.com rather than pinned,
+so only the macOS pins are compared here.
+
+Exits 0 when every pin is current, 1 when one is behind, 2 when the check
+could not run. A check that could not run is a failed check, never a skipped
+one, so the caller must gate on the exit code.
+USAGE
+}
+
+macos_images_available() {
+  gh api repos/actions/runner-images/releases --paginate --jq '.[].tag_name' 2>/dev/null |
+    grep -oE '^macos-[0-9]+' | sort -u
+}
+
+newest_macos_major() {
+  local tags
+  tags="$(macos_images_available)"
+  [[ -n "${tags}" ]] || return 1
+  printf '%s\n' "${tags}" | grep -oE '[0-9]+$' | sort -n | tail -1
+}
+
+xcode_major() {
+  gh api repos/actions/runner-images/releases --paginate --jq '.[].tag_name' 2>/dev/null |
+    grep -oE '^xcode-[0-9]+' | grep -oE '[0-9]+$' | sort -n | tail -1
+}
+
+pinned_macos_majors() {
+  grep -ohE 'macos-[0-9]+' "${WORKFLOW}" | grep -oE '[0-9]+$' | sort -un
+}
+
+ubuntu_latest_lts() {
+  curl -fsSL https://changelogs.ubuntu.com/meta-release 2>/dev/null |
+    grep -B1 'LTS' | grep -oE '^Version: [0-9.]+' | grep -oE '[0-9]+\.[0-9]+' | tail -1
+}
+
+report() {
+  printf '%s\n' "${1}" >&2
+  findings=$((findings + 1))
+}
+
+calibrate() {
+  local available
+  available="$(macos_images_available)"
+  [[ -n "${available}" ]] || {
+    printf 'calibration failed: the image listing came back empty\n' >&2
+    return 2
+  }
+
+  if printf '%s\n' "${available}" | grep -qx 'macos-999'; then
+    printf 'calibration failed: a label that cannot exist was reported present\n' >&2
+    return 2
+  fi
+
+  local newest
+  newest="$(newest_macos_major)" || {
+    printf 'calibration failed: no macOS image could be resolved\n' >&2
+    return 2
+  }
+  if ! printf '%s\n' "${available}" | grep -qx "macos-${newest}"; then
+    printf 'calibration failed: the newest resolved label was reported absent\n' >&2
+    return 2
+  fi
+
+  printf 'calibrated: macos-999 absent, macos-%s present\n' "${newest}"
+}
+
+main() {
+  case "${1:-}" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --calibrate)
+      calibrate
+      return $?
+      ;;
+    '') ;;
+    *)
+      usage >&2
+      return 2
+      ;;
+  esac
+
+  command -v gh >/dev/null 2>&1 || family_die "gh is not on PATH"
+  [[ -f "${WORKFLOW}" ]] || family_die "no workflow at ${WORKFLOW}"
+
+  calibrate >/dev/null || return 2
+
+  local newest pinned
+  newest="$(newest_macos_major)" || return 2
+  pinned="$(pinned_macos_majors)"
+  [[ -n "${pinned}" ]] || family_die "no macOS runner pin found in the workflow"
+
+  local p
+  for p in ${pinned}; do
+    if ((p < newest)); then
+      report "macOS runner pin is behind: the workflow pins macos-${p}, macos-${newest} is available"
+    fi
+  done
+
+  local xcode
+  xcode="$(xcode_major 2>/dev/null || true)"
+  if [[ -n "${xcode}" ]]; then
+    printf 'newest Xcode image: xcode-%s\n' "${xcode}"
+  fi
+
+  local lts
+  lts="$(ubuntu_latest_lts)" || true
+  if [[ -n "${lts}" ]]; then
+    printf 'current Ubuntu LTS: %s, resolved at run time rather than pinned\n' "${lts}"
+  else
+    report "could not resolve the current Ubuntu LTS"
+  fi
+
+  if [[ "${findings}" -gt 0 ]]; then
+    printf '\n%s runner pin(s) behind\n' "${findings}" >&2
+    return 1
+  fi
+
+  printf 'every runner pin is current: macos-%s\n' "${newest}"
+}
+
+main "$@"
