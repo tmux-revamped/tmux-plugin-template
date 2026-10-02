@@ -6,141 +6,108 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/../lib/common.sh"
 
 ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-WORKFLOW="${ROOT}/.github/workflows/tests.yml"
-
-findings=0
+IMAGES_FILE=""
+LABEL_PATTERN='(ubuntu-[0-9]+\.[0-9]+(-arm)?|macos-[0-9]+(-intel)?)'
 
 usage() {
   cat <<'USAGE'
-usage: family/bin/check-runner-drift [--calibrate]
+usage: family/bin/check-runner-drift [--images FILE] [PATH]
 
-Compares the runner images this member pins against what GitHub currently
-offers, and fails when a newer generally available image exists.
+Fails when a workflow pins a GitHub-hosted runner label, such as ubuntu-24.04
+or macos-26-intel, and a newer generally available image of the same line
+exists. Preview and beta images are ignored.
 
-  --calibrate   prove the check can answer both ways before trusting it:
-                a label that cannot exist must report absent, and one that
-                certainly exists must report present
+  --images FILE   read the runner-images README from FILE instead of the API
+  PATH            the member to check, defaults to this repository
 
-Ubuntu is resolved at run time from changelogs.ubuntu.com rather than pinned,
-so only the macOS pins are compared here.
-
-Exits 0 when every pin is current, 1 when one is behind, 2 when the check
-could not run. A check that could not run is a failed check, never a skipped
-one, so the caller must gate on the exit code.
+Exits 0 when every pin is current, 1 on drift, 2 when the image list cannot
+be read.
 USAGE
 }
 
-macos_images_available() {
-  gh api repos/actions/runner-images/releases --paginate --jq '.[].tag_name' 2>/dev/null |
-    grep -oE '^macos-[0-9]+' | sort -u
+label_line() {
+  local label="${1}"
+  [[ "${label}" =~ ^(ubuntu|macos)-([0-9]+)(\.([0-9]+))?(-[a-z]+)?$ ]] || return 1
+  printf '%s%s %d\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[5]}" \
+    "$((10#${BASH_REMATCH[2]} * 100 + 10#${BASH_REMATCH[4]:-0}))"
 }
 
-newest_macos_major() {
-  local tags
-  tags="$(macos_images_available)"
-  [[ -n "${tags}" ]] || return 1
-  printf '%s\n' "${tags}" | grep -oE '[0-9]+$' | sort -n | tail -1
-}
-
-xcode_major() {
-  gh api repos/actions/runner-images/releases --paginate --jq '.[].tag_name' 2>/dev/null |
-    grep -oE '^xcode-[0-9]+' | grep -oE '[0-9]+$' | sort -n | tail -1
-}
-
-pinned_macos_majors() {
-  grep -ohE 'macos-[0-9]+' "${WORKFLOW}" | grep -oE '[0-9]+$' | sort -un
-}
-
-ubuntu_latest_lts() {
-  curl -fsSL https://changelogs.ubuntu.com/meta-release 2>/dev/null |
-    grep -B1 'LTS' | grep -oE '^Version: [0-9.]+' | grep -oE '[0-9]+\.[0-9]+' | tail -1
-}
-
-report() {
-  printf '%s\n' "${1}" >&2
-  findings=$((findings + 1))
-}
-
-calibrate() {
-  local available
-  available="$(macos_images_available)"
-  [[ -n "${available}" ]] || {
-    printf 'calibration failed: the image listing came back empty\n' >&2
-    return 2
-  }
-
-  if printf '%s\n' "${available}" | grep -qx 'macos-999'; then
-    printf 'calibration failed: a label that cannot exist was reported present\n' >&2
-    return 2
+read_images() {
+  if [[ -n "${IMAGES_FILE}" ]]; then
+    cat "${IMAGES_FILE}"
+    return
   fi
+  gh api repos/actions/runner-images/readme --jq .content | base64 --decode
+}
 
-  local newest
-  newest="$(newest_macos_major)" || {
-    printf 'calibration failed: no macOS image could be resolved\n' >&2
-    return 2
-  }
-  if ! printf '%s\n' "${available}" | grep -qx "macos-${newest}"; then
-    printf 'calibration failed: the newest resolved label was reported absent\n' >&2
-    return 2
-  fi
+available_labels() {
+  grep -E '^\|' | grep -viE 'preview|beta' | grep -oE "\`${LABEL_PATTERN}\`" | tr -d '`' | sort -u
+}
 
-  printf 'calibrated: macos-999 absent, macos-%s present\n' "${newest}"
+pinned_labels() {
+  local dir="${1}/.github/workflows"
+  [[ -d "${dir}" ]] || return 0
+  cat "${dir}"/*.yml 2>/dev/null | grep -oE "${LABEL_PATTERN}" | sort -u || true
+}
+
+newest_in_line() {
+  local line="${1}" available="${2}" label candidate_line version best="" best_version=-1
+  while IFS= read -r label; do
+    [[ -n "${label}" ]] || continue
+    read -r candidate_line version < <(label_line "${label}") || continue
+    [[ "${candidate_line}" == "${line}" && "${version}" -gt "${best_version}" ]] || continue
+    best="${label}"
+    best_version="${version}"
+  done <<<"${available}"
+  printf '%s %s\n' "${best}" "${best_version}"
+}
+
+report_drift() {
+  local pinned="${1}" available="${2}" label line version newest newest_version drift=0
+  while IFS= read -r label; do
+    [[ -n "${label}" ]] || continue
+    read -r line version < <(label_line "${label}") || continue
+    read -r newest newest_version < <(newest_in_line "${line}" "${available}")
+    [[ -n "${newest}" && "${newest_version}" -gt "${version}" ]] || continue
+    printf '%s: pins %s, %s is generally available\n' "$(family_repo_name "${ROOT}")" "${label}" "${newest}"
+    drift=1
+  done <<<"${pinned}"
+  return "${drift}"
 }
 
 main() {
-  case "${1:-}" in
-    -h | --help)
-      usage
-      return 0
-      ;;
-    --calibrate)
-      calibrate
-      return $?
-      ;;
-    '') ;;
-    *)
-      usage >&2
-      return 2
-      ;;
-  esac
-
-  command -v gh >/dev/null 2>&1 || family_die "gh is not on PATH"
-  [[ -f "${WORKFLOW}" ]] || family_die "no workflow at ${WORKFLOW}"
-
-  calibrate >/dev/null || return 2
-
-  local newest pinned
-  newest="$(newest_macos_major)" || return 2
-  pinned="$(pinned_macos_majors)"
-  [[ -n "${pinned}" ]] || family_die "no macOS runner pin found in the workflow"
-
-  local p
-  for p in ${pinned}; do
-    if ((p < newest)); then
-      report "macOS runner pin is behind: the workflow pins macos-${p}, macos-${newest} is available"
-    fi
+  local target="${ROOT}"
+  while [[ $# -gt 0 ]]; do
+    case "${1}" in
+      --images)
+        IMAGES_FILE="${2:-}"
+        shift 2
+        ;;
+      -h | --help)
+        usage
+        return 0
+        ;;
+      -*)
+        usage >&2
+        return 2
+        ;;
+      *)
+        target="${1}"
+        shift
+        ;;
+    esac
   done
 
-  local xcode
-  xcode="$(xcode_major 2>/dev/null || true)"
-  if [[ -n "${xcode}" ]]; then
-    printf 'newest Xcode image: xcode-%s\n' "${xcode}"
+  local images available pinned
+  images="$(read_images)" || { printf 'error: could not read the runner-images list\n' >&2; return 2; }
+  available="$(available_labels <<<"${images}" || true)"
+  if [[ -z "${available}" ]]; then
+    printf 'error: the runner-images list holds no recognisable runner label\n' >&2
+    return 2
   fi
-
-  local lts
-  lts="$(ubuntu_latest_lts)" || true
-  if [[ -n "${lts}" ]]; then
-    printf 'current Ubuntu LTS: %s, resolved at run time rather than pinned\n' "${lts}"
-  else
-    report "could not resolve the current Ubuntu LTS"
-  fi
-
-  if [[ "${findings}" -gt 0 ]]; then
-    printf '\n%s runner pin(s) behind\n' "${findings}" >&2
-    return 1
-  fi
-
-  printf 'every runner pin is current: macos-%s\n' "${newest}"
+  pinned="$(pinned_labels "${target}")"
+  report_drift "${pinned}" "${available}" || return 1
+  printf '%s: every pinned runner is current\n' "$(family_repo_name "${ROOT}")"
 }
 
 main "$@"
