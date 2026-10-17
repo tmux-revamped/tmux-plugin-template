@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own `~/.tmux.conf` and the plugins it loads stay out of the test run.
 - The README no longer links an `examples/` directory that does not exist, and
   no longer states a test count that goes stale with every new test.
+- Two platform tests now fail when a negated predicate is wrong. A `!` line
+  that is not the last line of a bats test never fails it, so `! is_linux` on
+  Darwin and `! is_macos` on Linux were never enforced.
 
 ## [1.0.0] - 2026-06-19
 
