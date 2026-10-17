@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The integration test server starts with `-f /dev/null`, so the developer's
+  own `~/.tmux.conf` and the plugins it loads stay out of the test run.
+
 ## [1.0.0] - 2026-06-19
 
 ### Added
