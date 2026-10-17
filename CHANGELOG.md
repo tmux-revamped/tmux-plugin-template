@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The integration test server starts with `-f /dev/null`, so the developer's
   own `~/.tmux.conf` and the plugins it loads stay out of the test run.
+- The README no longer links an `examples/` directory that does not exist, and
+  no longer states a test count that goes stale with every new test.
 
 ## [1.0.0] - 2026-06-19
 

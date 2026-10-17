@@ -8,7 +8,7 @@
 
 </div>
 
-**54** tests · **95%+** coverage · **2** platforms · **0** temp files
+**95%+** coverage · **2** platforms · **0** temp files
 
 This is the shared foundation for the `tmux-*-revamped` status plugins. It provides an async, temp-file-free cache that keeps all state in tmux server user-options, so the status bar reads a cached value instantly while a detached worker recomputes stale values in the background. It also ships platform helpers, a bats test harness that runs on bash 3.2, kcov coverage tooling, and CI.
 
@@ -51,7 +51,7 @@ CI runs a kcov gate that fails below 95%.
 
 On GitHub, click "Use this template" to generate a new repository from this one, or run `gh repo create <owner>/tmux-<metric>-revamped --template <owner>/tmux-plugin-template`.
 
-A plugin built from the template follows the layout the shared core expects: source the cache from [`src/lib/utils/cache.sh`](src/lib/utils/cache.sh), set a `CACHE_PREFIX` to namespace its options, add per-platform parsers under [`src/lib`](src/lib), and add one bats file per module under [`test/`](test) at 95%+ coverage. See [`examples/`](examples) for a worked dispatcher and worker.
+A plugin built from the template follows the layout the shared core expects: source the cache from [`src/lib/utils/cache.sh`](src/lib/utils/cache.sh), set a `CACHE_PREFIX` to namespace its options, add per-platform parsers under [`src/lib`](src/lib), and add one bats file per module under [`test/`](test) at 95%+ coverage.
 
 ## Structure
 
@@ -69,7 +69,6 @@ src/
       error-logger.sh    opt-in logging, off by default
       constants.sh       shared defaults
 test/                    bats suites, helpers, and tmux mock
-examples/                worked dispatcher and worker
 .github/                 Tests workflow and CI
 Makefile                 test, lint, and coverage targets
 ```
