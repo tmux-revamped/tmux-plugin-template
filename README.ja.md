@@ -6,9 +6,11 @@
 
 [English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![Tests](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
+[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/family.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml)
+[![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-plugin-template?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-plugin-template/releases/latest)
+[![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-plugin-template?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-plugin-template)
+[![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
   <a href="#機能">機能</a> &nbsp;|&nbsp;
