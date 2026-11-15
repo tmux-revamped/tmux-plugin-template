@@ -112,6 +112,13 @@ family_exception_exists() {
     grep -qF "### ${repo}: ${path}"
 }
 
+family_bot_editable() {
+  case "${1}" in
+  .github/workflows/*.yml | package.json | pnpm-lock.yaml | Gemfile | Gemfile.lock | .ruby-version) return 0 ;;
+  *) return 1 ;;
+  esac
+}
+
 family_repo_name() {
   basename "${1}"
 }
