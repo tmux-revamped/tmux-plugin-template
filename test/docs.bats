@@ -8,7 +8,7 @@
   # Act
   while IFS= read -r target; do
     case "${target}" in
-      http://* | https://* | mailto:* | '#'*) continue ;;
+    http://* | https://* | mailto:* | '#'*) continue ;;
     esac
     [[ -e "${repo}/${target%%#*}" ]] || missing="${missing} ${target}"
   done < <(grep -oE '\]\([^)]+\)' "${repo}/README.md" | sed -E 's/^\]\(//; s/\)$//')

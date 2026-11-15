@@ -58,7 +58,7 @@ check_version() {
     return
   }
   case "${version}" in
-    '' | *[!0-9]*) report "family/VERSION" "not a positive integer: ${version}" ;;
+  '' | *[!0-9]*) report "family/VERSION" "not a positive integer: ${version}" ;;
   esac
 }
 
@@ -66,9 +66,12 @@ check_ownership_resolves() {
   local path
   while IFS= read -r path; do
     case "${path}" in
-      MISSING:*) report "${path#MISSING:}" "named in family/OWNERSHIP but absent from this member" ;;
+    MISSING:*) report "${path#MISSING:}" "named in family/OWNERSHIP but absent from this member" ;;
     esac
-  done < <(family_paths_of_class "${ROOT}" owned; family_paths_of_class "${ROOT}" shaped)
+  done < <(
+    family_paths_of_class "${ROOT}" owned
+    family_paths_of_class "${ROOT}" shaped
+  )
 }
 
 check_owned_hashes() {
@@ -89,7 +92,7 @@ check_owned_hashes() {
     [[ "${computed}" == "${recorded}" ]] && continue
     family_exception_exists "${ROOT}" "${REPO}" "${path}" && continue
     report "${path}" "content differs from the family copy, recorded ${recorded:0:12} computed ${computed:0:12}"
-  done < "${CHECKSUM_FILE}"
+  done <"${CHECKSUM_FILE}"
 }
 
 check_manifest_complete() {
@@ -138,9 +141,9 @@ check_shaped_files() {
   local path
   while IFS= read -r path; do
     case "${path}" in
-      AGENTS.md) check_shaped_agent_guide ;;
-      README.md) check_shaped_readme ;;
-      CHANGELOG.md) check_shaped_changelog ;;
+    AGENTS.md) check_shaped_agent_guide ;;
+    README.md) check_shaped_readme ;;
+    CHANGELOG.md) check_shaped_changelog ;;
     esac
   done < <(family_shaped_paths "${ROOT}" | grep -v '^MISSING:')
 }
