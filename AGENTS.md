@@ -13,7 +13,10 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 | [`test/lib/`](test/lib) | The shared library's suite, owned |
 | [`test/family/`](test/family) | The family tooling's suite, owned |
 | [`test/docs.bats`](test/docs.bats) | The README link check |
+| [`test/`](test), the other root suites | The suites of the lint checks and the CI scripts, such as [`test/bot-checksums.bats`](test/bot-checksums.bats) |
 | [`family/`](family) | The family tooling, owned |
+| [`scripts/`](scripts) | The checks `make lint` runs: names, source rules and action pins |
+| [`.github/scripts/`](.github/scripts) | The scripts only CI and the release run: version stamping, bot-merge checksums, CI state and recovery |
 
 ## Names
 
@@ -33,8 +36,9 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 ## Release
 
-- `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) holds the version. It must equal the newest versioned heading in [`CHANGELOG.md`](CHANGELOG.md) and the README's version badge, which the `version` job in `tests.yml` checks.
-- A push to `main` whose version has no tag yet makes the `release` job in `tests.yml` tag `vX.Y.Z` and publish a GitHub release with that changelog section.
+- `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) holds the version. Nobody edits it by hand.
+- After a green `ci` run on `main`, [`release.yml`](.github/workflows/release.yml) runs semantic-release: a `feat` or `fix` since the last tag publishes a release, [`set-version.sh`](.github/scripts/set-version.sh) stamps the constant, and the notes go into [`CHANGELOG.md`](CHANGELOG.md).
+- `make lint` fails when the constant and the newest release in the changelog differ.
 
 ## Gaps against FAMILY.md
 
@@ -48,9 +52,9 @@ As of 2026-11-15:
 - No `screens/` and no recordings in the README.
 - The README sections are not the family's order of Quick start, Usage, topic sections, Portability, Development and License.
 - Coverage is kcov with a 95 percent floor on Linux, not bashcov at 100 percent merged from macOS and Linux.
-- CI tests GNU, BSD and uutils tools in `tests.yml`, but not the six toolsets through `.github/scripts/toolset.sh`, and no shell matrix under `sh`, `dash`, `bash` and `zsh`.
+- CI tests GNU, BSD and uutils tools in `ci.yml`, but not the six toolsets through `.github/scripts/toolset.sh`, and no shell matrix under `sh`, `dash`, `bash` and `zsh`.
 - No golden transcripts, `call.sh`, `run-matrix.sh` or `linux-container.sh`.
-- The version is written by hand and released by `tests.yml`; there is no semantic-release, `package.json`, `release.yml` with `recover`, `bot-merge.yml` or Renovate.
-- CI is `tests.yml`, `family.yml` and `security.yml`, not `ci.yml`, and no job starts with `step-security/harden-runner`.
-- No `.editorconfig`, `.yamllint.yml`, `scripts/check-names.sh` or shfmt; the Makefile has `help`, `test`, `test-unit`, `coverage`, `lint` and `clean`, not the family's targets.
+- The Makefile has no `screens` or `install` target, `make lint` runs ShellCheck at warning level instead of `-o all` and no `mandoc -T lint`, and `make coverage` is kcov in a container.
+- [`scripts/check-names.sh`](scripts/check-names.sh) does not check the environment-variable prefix, because the shared library's globals, such as `CACHE_PREFIX` and `TICKER_SEP`, carry none.
+- The files that FAMILY.md names as owned, such as `ci.yml`, `release.yml` and [`.editorconfig`](.editorconfig), are not in [`family/OWNERSHIP`](family/OWNERSHIP) until every member carries them.
 - The family tooling is bash, so running the audit under `dash` fails.

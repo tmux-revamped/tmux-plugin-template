@@ -1,0 +1,340 @@
+---
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths-ignore: ['**.md']
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+jobs:
+  plan:
+    name: choose the macOS legs
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      macos: ${{ steps.choose.outputs.macos }}
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - name: Run every macOS leg except on a bot pull request
+        id: choose
+        env:
+          EVENT: ${{ github.event_name }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+          legs='[{"os":"macos-26","profile":"system"},{"os":"macos-26","profile":"gnu"},{"os":"macos-26","profile":"uutils"},{"os":"macos-26-intel","profile":"system"},{"os":"macos-26-intel","profile":"gnu"},{"os":"macos-26-intel","profile":"uutils"}]'
+          case "${EVENT}:${AUTHOR}" in
+          'pull_request:dependabot[bot]' | 'pull_request:renovate[bot]')
+            legs='[{"os":"macos-26","profile":"system"}]'
+            ;;
+          *) ;;
+          esac
+          echo "macos=${legs}" >> "${GITHUB_OUTPUT}"
+
+  lint:
+    name: lint and format
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install shfmt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download v3.14.1 --repo mvdan/sh --pattern 'shfmt_v3.14.1_linux_amd64' --output shfmt
+          echo "76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf  shfmt" | sha256sum -c -
+          sudo install -m 755 shfmt /usr/local/bin/shfmt
+      - name: Install ShellCheck
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download v0.11.0 --repo koalaman/shellcheck \
+            --pattern 'shellcheck-v0.11.0.linux.x86_64.tar.xz' --output shellcheck.tar.xz
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf shellcheck.tar.xz --strip-components=1 --wildcards '*/shellcheck'
+          sudo install -m 755 shellcheck /usr/local/bin/shellcheck
+      - name: Install actionlint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download v1.7.12 --repo rhysd/actionlint \
+            --pattern 'actionlint_1.7.12_linux_amd64.tar.gz' --output actionlint.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint.tar.gz" | sha256sum -c -
+          tar -xzf actionlint.tar.gz actionlint
+          sudo install -m 755 actionlint /usr/local/bin/actionlint
+      - name: Install yamllint
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq yamllint
+      - name: Lint at zero findings
+        run: make lint
+
+  test-linux:
+    name: test (linux, ${{ matrix.host }}, ${{ matrix.tools }})
+    needs: [plan]
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [ubuntu-26.04, ubuntu-26.04-arm]
+        tools: [uutils, gnu]
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 30
+    container:
+      image: ubuntu:26.04
+    env:
+      TOOLS: ${{ matrix.tools }}
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - name: Bootstrap the container
+        run: |
+          set -eu
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git make bats tmux zsh python3 ca-certificates
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+      - name: Select the core tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${TOOLS}" == "gnu" ]]; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-remove-essential \
+              coreutils-from-gnu coreutils-from-uutils-
+          else
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-remove-essential \
+              coreutils-from-uutils coreutils-from-gnu-
+          fi
+          echo "SHELL=$(command -v zsh)" >> "${GITHUB_ENV}"
+      - name: Verify the profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash --version | head -1
+          zsh --version
+          tmux -V
+          expected="GNU coreutils"
+          [[ "${TOOLS}" == "uutils" ]] && expected="uutils coreutils"
+          cat --version | head -1 | grep -qF "${expected}"
+          [[ "${SHELL}" == */zsh ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run the suites
+        run: make test
+
+  test-macos:
+    name: test (${{ matrix.os }}, ${{ matrix.profile }})
+    needs: [plan, lint, test-linux]
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.macos) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          packages=(bats-core tmux)
+          case "${PROFILE}" in
+            gnu) packages+=(bash zsh coreutils findutils diffutils gnu-sed grep gawk) ;;
+            uutils) packages+=(bash zsh uutils-coreutils uutils-findutils uutils-diffutils gnu-sed grep gawk) ;;
+            *) ;;
+          esac
+          brew install "${packages[@]}"
+      - name: Select the shells and core tools
+        run: |
+          set -euo pipefail
+          prefix="$(brew --prefix)"
+          text_tools=("$(brew --prefix gawk)/libexec/gnubin" "$(brew --prefix grep)/libexec/gnubin"
+            "$(brew --prefix gnu-sed)/libexec/gnubin")
+          case "${PROFILE}" in
+            system)
+              paths=(/usr/sbin /sbin /usr/bin /bin)
+              login_shell=/bin/zsh
+              ;;
+            gnu)
+              paths=("${prefix}/bin" "${text_tools[@]}" "$(brew --prefix diffutils)/bin"
+                "$(brew --prefix findutils)/libexec/gnubin" "$(brew --prefix coreutils)/libexec/gnubin")
+              login_shell="${prefix}/bin/zsh"
+              ;;
+            *)
+              paths=("${prefix}/bin" "${text_tools[@]}" "$(brew --prefix uutils-diffutils)/libexec/uubin"
+                "$(brew --prefix uutils-findutils)/libexec/uubin" "$(brew --prefix uutils-coreutils)/libexec/uubin")
+              login_shell="${prefix}/bin/zsh"
+              ;;
+          esac
+          for dir in "${paths[@]}"; do
+            echo "${dir}" >> "${GITHUB_PATH}"
+          done
+          echo "SHELL=${login_shell}" >> "${GITHUB_ENV}"
+      - name: Verify the profile
+        run: |
+          set -euo pipefail
+          command -v bash
+          bash --version | head -1
+          "${SHELL}" --version
+          tmux -V
+          case "${PROFILE}" in
+            system)
+              [[ "$(command -v bash)" == /bin/bash && "${SHELL}" == /bin/zsh ]]
+              if cat --version >/dev/null 2>&1; then exit 1; fi
+              ;;
+            gnu)
+              [[ "$(command -v bash)" == "$(brew --prefix)/bin/bash" && "${SHELL}" == "$(brew --prefix)/bin/zsh" ]]
+              cat --version | head -1 | grep -qF "GNU coreutils"
+              sed --version | head -1 | grep -qF "GNU sed"
+              ;;
+            *)
+              [[ "$(command -v bash)" == "$(brew --prefix)/bin/bash" && "${SHELL}" == "$(brew --prefix)/bin/zsh" ]]
+              cat --version | head -1 | grep -qF "uutils coreutils"
+              sed --version | head -1 | grep -qF "GNU sed"
+              ;;
+          esac
+      - name: Run the suites
+        run: make test
+
+  coverage:
+    name: coverage
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install kcov and the suites' tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats tmux python3 kcov
+      - name: Measure line coverage and enforce the floor
+        run: make coverage-kcov
+
+  family:
+    name: family
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      BOT_PULL_REQUEST: >-
+        ${{ github.event_name == 'pull_request'
+        && endsWith(github.event.pull_request.user.login, '[bot]') }}
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify this member against the contract
+        run: |
+          set -euo pipefail
+          if [ "${BOT_PULL_REQUEST}" = true ]; then
+            family/bin/audit --bot
+          else
+            family/bin/audit
+          fi
+      - name: Verify the README family section is current
+        run: |
+          set -euo pipefail
+          members="${RUNNER_TEMP}/members"
+          mkdir -p "${members}"
+          grep -vE '^[[:space:]]*(#|$)' family/MEMBERS | while IFS= read -r member; do
+            git clone --quiet --depth=1 "https://github.com/tmux-revamped/${member}.git" "${members}/${member}"
+          done
+          family/bin/gen-readme --check --members-dir "${members}"
+      - name: Compare every owned file against the other members
+        if: env.BOT_PULL_REQUEST != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: family/bin/sync --check --remote-base https://github.com/tmux-revamped
+      - name: Fail when a newer runner image exists than the one pinned
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: family/bin/check-runner-drift
+
+  security:
+    name: security
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Audit the workflows
+        # yamllint disable-line rule:line-length
+        uses: docker://ghcr.io/zizmorcore/zizmor:1.30.1@sha256:a2eb396d886c053073405c7a980f2139ba2248ec172243cfa3841e57196e8101
+        with:
+          args: --persona=regular --format=plain .github/workflows
+      - name: Every action and image is pinned
+        run: sh scripts/check-pins.sh
+
+  scorecard:
+    name: openssf scorecard
+    if: >-
+      github.event_name == 'schedule'
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run the OpenSSF Scorecard
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e  # v2.5.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+      - name: Upload the result
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          sarif_file: scorecard.sarif

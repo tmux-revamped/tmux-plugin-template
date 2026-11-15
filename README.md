@@ -6,8 +6,7 @@
 
 English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-plugin-template?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-plugin-template/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-plugin-template?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-plugin-template)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
@@ -35,9 +34,9 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 |:-----|:-----|:-----------------------|
 | Shared library | [`src/lib`](src/lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
 | Test harness | [`test`](test) | bats helpers with an in-memory tmux mock for unit tests and a private-socket tmux server for integration tests |
-| CI | [`.github/workflows`](.github/workflows) | tests on Ubuntu and macOS with GNU, BSD and uutils tools, shellcheck, actionlint, a 95 percent kcov floor, version checks, a release per new version, and a weekly family check |
+| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, a 95 percent kcov floor, the family check and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
 | Family tooling | [`family/bin`](family/bin) | audit, sync, propagate, sweep, doctor and README generation for the family contract in [`FAMILY.md`](FAMILY.md) |
-| Make targets | [`Makefile`](Makefile) | `test`, `test-unit`, `coverage`, `lint`, `clean` |
+| Make targets | [`Makefile`](Makefile) | `fmt`, `lint`, `test`, `test-all`, `test-linux`, `coverage`, `check`, `clean` |
 
 ## Requirements
 
@@ -46,8 +45,8 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 | tmux | 3.2 or later | the family floor every member supports |
 | bash | 3.2 or later | the library and the tests run on macOS `/bin/bash` |
 | bats-core | any | `make test` |
-| shellcheck | any | `make lint` |
-| kcov and python3 | any | `make coverage`, Linux only |
+| shfmt, shellcheck, yamllint and actionlint | any | `make lint` |
+| Docker | any | `make test-linux` and `make coverage`, which run in an Ubuntu container |
 
 ## Starting a new plugin
 
@@ -60,10 +59,10 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
    ```
 
 2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `src/example.sh` and its own modules under `src/lib/example/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
-3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) to `EXAMPLE_REVAMPED_VERSION`. The CI `version` job fails unless that constant, the first versioned heading of [`CHANGELOG.md`](CHANGELOG.md) and the `version-X.Y.Z` badge in the README agree.
-4. Name every tmux option `@example_revamped_<name>`. The CI lint job takes the slug from the directory name and fails when an option under [`src/`](src) is missing from [`README.md`](README.md).
+3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it, and `make lint` fails unless it matches the newest release in [`CHANGELOG.md`](CHANGELOG.md).
+4. Name every tmux option `@example_revamped_<name>`. `make lint` takes the slug from the directory name and fails when an option under [`src/`](src) is missing from [`README.md`](README.md).
 5. Pick at most one default key from the allocation in [`family/KEYS.md`](family/KEYS.md), and leave every other action unbound by default.
-6. Add the repository to [`family/MEMBERS`](family/MEMBERS). Both files are owned, so change them in one member and run `family/bin/propagate --message 'chore(family): add tmux-example-revamped'`, which copies them to every member and opens the pull requests.
+6. Add the repository to [`family/MEMBERS`](family/MEMBERS). Both files are owned, so change them in one member and run `family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`, which copies them into every member checked out beside this one and commits there. Push each `main` after its gates pass.
 7. Write the README with the same header as this one and keep the `family:begin` and `family:end` markers. [`family/bin/gen-readme`](family/bin/gen-readme) fills the section between them from the member list in [`family/MEMBERS`](family/MEMBERS) and the tagline of each member.
 8. Run the gates in the Development section until all of them exit 0.
 
@@ -131,13 +130,17 @@ For plugins whose placeholders run often, `ticker_run` keeps one background proc
 
 | Command | What it runs |
 |:--------|:-------------|
+| `make fmt` | shfmt `-i 2` on every script |
+| `make lint` | shfmt, shellcheck, the name, source and pin checks, yamllint and actionlint, at zero findings |
 | `make test` | the bats suite |
-| `make test-unit` | the unit tests under [`test/lib`](test/lib) |
-| `make lint` | shellcheck at warning level on every shell file and every family command |
-| `make coverage` | kcov line coverage with a 95 percent floor, Linux only |
+| `make test-all` | the bats suite once with every installed bash and zsh as the login shell |
+| `make test-linux` | the bats suite in an Ubuntu container |
+| `make coverage` | kcov line coverage in an Ubuntu container, with a 95 percent floor |
 | [`family/bin/audit`](family/bin/audit) | this repository against the family contract |
 
 [`test/docs.bats`](test/docs.bats) fails when a relative link in this README points at a path that does not exist.
+
+Commits follow the conventional commit format and go straight to `main`. After a green `ci` run on `main`, `release.yml` runs semantic-release: every `feat` or `fix` since the last tag publishes a release, stamps the version constant and adds the notes to [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 

@@ -1,46 +1,77 @@
-.PHONY: test test-unit coverage lint clean help
+SHELL := /bin/sh
+SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux' 'family/bin/*')
+BASH_SOURCES = $(shell git ls-files -- 'src/*.sh' '*.tmux' '*.bash' 'family/bin/*' 'family/lib/*.sh' 'test/*.sh')
+POSIX_SCRIPTS = $(shell git ls-files -- '.github/scripts/*.sh' 'scripts/*.sh')
+LINUX_IMAGE := ubuntu:26.04
+LINUX_PACKAGES := bats git make tmux zsh kcov python3 ca-certificates
+COVERAGE_MIN := 95
+CONTAINER_DIR := /src/$(notdir $(CURDIR))
 
-SHELL := /usr/bin/env bash
-BATS := $(shell command -v bats 2>/dev/null || echo "bats")
-SHELLCHECK := $(shell command -v shellcheck 2>/dev/null || echo "shellcheck")
-KCOV := $(shell command -v kcov 2>/dev/null || echo "kcov")
-COVERAGE_MIN ?= 95
-COVERAGE_EXCLUDE ?=
-LINT_EXCLUDE ?=
-CLEAN_EXTRA ?=
+.PHONY: help fmt lint test test-all test-linux coverage coverage-kcov check clean
 
--include Makefile.local
+help:
+	@echo "targets:"
+	@echo "  fmt         format every script with shfmt -i 2"
+	@echo "  lint        shfmt, ShellCheck, the name, source and pin checks, yamllint and actionlint at zero findings"
+	@echo "  test        the bats suites"
+	@echo "  test-all    the bats suites with every installed bash and zsh as the login shell"
+	@echo "  test-linux  the bats suites in an Ubuntu container"
+	@echo "  coverage    kcov in an Ubuntu container, gate $(COVERAGE_MIN)%"
+	@echo "  check       lint and test"
+	@echo "  clean       remove the coverage output"
 
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+fmt:
+	shfmt -i 2 -w $(SCRIPTS)
 
-test: ## Run the full test suite
-	@$(BATS) --recursive test/
+lint:
+	shfmt -i 2 -d $(SCRIPTS)
+	shellcheck -x --severity=warning --shell=bash $(BASH_SOURCES)
+	shellcheck -x -o all -s sh $(POSIX_SCRIPTS)
+	sh scripts/check-names.sh
+	sh scripts/check-source.sh
+	sh scripts/check-pins.sh
+	yamllint -s -c .yamllint.yml .github .yamllint.yml
+	actionlint
 
-test-unit: ## Run unit tests only
-	@$(BATS) --recursive test/lib/
+test:
+	bats --recursive test/
 
-coverage: ## Measure line coverage with kcov and enforce COVERAGE_MIN (Linux)
-	@command -v kcov >/dev/null 2>&1 || { \
-		echo "kcov is not installed. On Ubuntu: sudo apt-get install -y kcov"; exit 1; }
-	@rm -rf coverage
-	@$(KCOV) "--include-path=$(CURDIR)/src" $(COVERAGE_EXCLUDE) \
-		coverage "$(BATS)" --recursive test/ >/dev/null
-	@percent=$$(python3 -c "import json,glob; \
-files=glob.glob('coverage/kcov-merged/coverage.json') or glob.glob('coverage/*/coverage.json'); \
-data=json.load(open(sorted(files)[-1])) if files else {}; \
-print(data.get('percent_covered', '0'))"); \
-	echo "Line coverage: $$percent% (min $(COVERAGE_MIN)%)"; \
-	awk -v p="$$percent" -v m="$(COVERAGE_MIN)" 'BEGIN { exit (p+0 >= m+0) ? 0 : 1 }' || \
-		{ echo "Coverage below $(COVERAGE_MIN)%"; exit 1; }
+test-all:
+	@set -e; seen=; \
+	for login in /bin/bash /bin/zsh $$(command -v bash) $$(command -v zsh); do \
+	  [ -x "$$login" ] || continue; \
+	  case " $$seen " in *" $$login "*) continue ;; esac; \
+	  seen="$$seen $$login"; \
+	  echo "== login shell $$login"; \
+	  SHELL="$$login" bats --recursive test/; \
+	done
 
-lint: ## Run shellcheck on all shell files
-	@{ find . -type f \( -name "*.sh" -o -name "*.tmux" -o -name "*.bash" \) \
-		-not -path "./.git/*" -not -path "./coverage/*" $(LINT_EXCLUDE); \
-		find ./family/bin -type f; } | sort | \
-		xargs $(SHELLCHECK) --severity=warning --shell=bash
+test-linux:
+	docker run --rm -v "$(CURDIR):$(CONTAINER_DIR)" -w $(CONTAINER_DIR) $(LINUX_IMAGE) sh -c '\
+	  set -e; \
+	  apt-get update -qq >/dev/null; \
+	  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $(LINUX_PACKAGES) >/dev/null; \
+	  git config --global --add safe.directory $(CONTAINER_DIR); \
+	  bats --recursive test/'
 
-clean: ## Remove coverage and temp artifacts
-	@rm -rf coverage $(CLEAN_EXTRA)
-	@echo "Cleaned."
+coverage:
+	docker run --rm -v "$(CURDIR):$(CONTAINER_DIR)" -w $(CONTAINER_DIR) $(LINUX_IMAGE) sh -c '\
+	  set -e; \
+	  apt-get update -qq >/dev/null; \
+	  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $(LINUX_PACKAGES) >/dev/null; \
+	  git config --global --add safe.directory $(CONTAINER_DIR); \
+	  make coverage-kcov'
+
+coverage-kcov:
+	rm -rf coverage
+	kcov "--include-path=$(CURDIR)/src" coverage bats --recursive test/
+	python3 -c "import glob, json, sys; \
+files = sorted(glob.glob('coverage/kcov-merged/coverage.json') or glob.glob('coverage/*/coverage.json')); \
+percent = float(json.load(open(files[-1]))['percent_covered']) if files else 0.0; \
+print(f'Line coverage: {percent}% (min $(COVERAGE_MIN)%)'); \
+sys.exit(0 if percent >= $(COVERAGE_MIN) else 1)"
+
+check: lint test
+
+clean:
+	rm -rf coverage

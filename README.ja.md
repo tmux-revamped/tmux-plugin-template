@@ -6,8 +6,7 @@
 
 [English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-plugin-template?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-plugin-template/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-plugin-template?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-plugin-template)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
@@ -35,9 +34,9 @@
 |:-----|:-----|:-----------------------|
 | 共有ライブラリ | [`src/lib`](src/lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
 | テストハーネス | [`test`](test) | 単体テスト用のメモリー上のtmuxモックと、結合テスト用の専用ソケットのtmuxサーバーを備えたbatsの補助関数 |
-| CI | [`.github/workflows`](.github/workflows) | GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、shellcheck、actionlint、下限95パーセントのkcov、バージョンの確認、新しいバージョンごとのリリース、毎週のファミリーの確認 |
+| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、下限95パーセントのkcov、ファミリーの確認、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
 | ファミリーのツール | [`family/bin`](family/bin) | [`FAMILY.md`](FAMILY.md)にあるファミリーの規約のための、監査、同期、伝播、一斉調査、診断、README生成 |
-| makeのターゲット | [`Makefile`](Makefile) | `test`、`test-unit`、`coverage`、`lint`、`clean` |
+| makeのターゲット | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 動作要件
 
@@ -46,8 +45,8 @@
 | tmux | 3.2以降 | すべてのメンバーが対応するファミリーの下限 |
 | bash | 3.2以降 | ライブラリとテストはmacOSの`/bin/bash`で動きます |
 | bats-core | 任意のバージョン | `make test` |
-| shellcheck | 任意のバージョン | `make lint` |
-| kcovとpython3 | 任意のバージョン | `make coverage`、Linuxのみ |
+| shfmt、shellcheck、yamllint、actionlint | 任意のバージョン | `make lint` |
+| Docker | 任意のバージョン | Ubuntuのコンテナで動く`make test-linux`と`make coverage` |
 
 ## 新しいプラグインの始め方
 
@@ -60,10 +59,10 @@
    ```
 
 2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`src/example.sh`に、独自のモジュールは`src/lib/example/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
-3. [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。CIの`version`ジョブは、この定数、[`CHANGELOG.md`](CHANGELOG.md)の最初のバージョン付き見出し、READMEの`version-X.Y.Z`バッジが一致しないと失敗します。
-4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。CIのlintジョブはディレクトリ名からスラッグを取り、[`src/`](src)配下のオプションが[`README.md`](README.md)にないと失敗します。
+3. [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)の最新リリースと一致しないと`make lint`が失敗します。
+4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。`make lint`はディレクトリ名からスラッグを取り、[`src/`](src)配下のオプションが[`README.md`](README.md)にないと失敗します。
 5. 既定のキーは、[`family/KEYS.md`](family/KEYS.md)の割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
-6. [`family/MEMBERS`](family/MEMBERS)にリポジトリを追加します。どちらのファイルも共有されているので、1つのメンバーで変更してから`family/bin/propagate --message 'chore(family): add tmux-example-revamped'`を実行します。これがすべてのメンバーにファイルをコピーし、プルリクエストを作ります。
+6. [`family/MEMBERS`](family/MEMBERS)にリポジトリを追加します。どちらのファイルも共有されているので、1つのメンバーで変更してから`family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`を実行します。これが隣にチェックアウトしたすべてのメンバーにファイルをコピーしてコミットします。ゲートが通ったら各メンバーの`main`をプッシュします。
 7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印を残します。[`family/bin/gen-readme`](family/bin/gen-readme)が、[`family/MEMBERS`](family/MEMBERS)のメンバー一覧と各メンバーの説明文から、その間の節を埋めます。
 8. 開発の節にある検査を、すべて0で終了するまで実行します。
 
@@ -131,13 +130,17 @@ graph LR
 
 | コマンド | 実行するもの |
 |:--------|:-------------|
+| `make fmt` | すべてのスクリプトに`shfmt -i 2`を実行 |
+| `make lint` | shfmt、shellcheck、名前とソースとピン留めの確認、yamllint、actionlintを指摘ゼロで実行 |
 | `make test` | batsのテストスイート |
-| `make test-unit` | [`test/lib`](test/lib)配下の単体テスト |
-| `make lint` | すべてのシェルファイルとファミリーのすべてのコマンドに対するwarningレベルのshellcheck |
-| `make coverage` | 下限95パーセントのkcovによる行カバレッジ、Linuxのみ |
+| `make test-all` | インストールされているbashとzshをそれぞれログインシェルにしてbatsのテストスイートを実行 |
+| `make test-linux` | Ubuntuのコンテナでbatsのテストスイートを実行 |
+| `make coverage` | Ubuntuのコンテナでkcovによる行カバレッジを測り、下限は95パーセント |
 | [`family/bin/audit`](family/bin/audit) | ファミリーの規約に対するこのリポジトリの検査 |
 
 [`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指していると失敗します。
+
+コミットはConventional Commitsの形式で、`main`に直接入れます。`main`で`ci`が成功すると、`release.yml`がsemantic-releaseを実行します。前回のタグ以降の`feat`か`fix`がリリースを公開し、バージョン定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)にノートを追加します。
 
 ## ライセンス
 

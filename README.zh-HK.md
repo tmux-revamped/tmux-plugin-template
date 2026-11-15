@@ -6,8 +6,7 @@
 
 [English](README.md) &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; 繁體中文（香港）
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-plugin-template/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-plugin-template/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-plugin-template?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-plugin-template/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-plugin-template?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-plugin-template)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
@@ -35,9 +34,9 @@
 |:-----|:-----|:-----------------------|
 | 共用程式庫 | [`src/lib`](src/lib) | 存放在 tmux 選項中的狀態快取、背景繪製器、批次寫入選項、tmux 選項輔助函數、平台偵測，以及可選開啟的錯誤日誌 |
 | 測試框架 | [`test`](test) | bats 輔助函數，單元測試用記憶體中的 tmux 模擬，整合測試用獨立 socket 的 tmux 伺服器 |
-| CI | [`.github/workflows`](.github/workflows) | 在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具測試，shellcheck、actionlint、下限 95% 的 kcov、版本檢查、每個新版本一次發佈，以及每週的系列檢查 |
+| CI 和發佈 | [`.github/workflows`](.github/workflows) | `ci.yml` 執行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的測試、下限 95% 的 kcov、系列檢查和安全掃描；`release.yml` 在推送通過 `ci` 後用 semantic-release 發佈；`bot-merge.yml` 合併通過檢查的 Dependabot 或 Renovate 拉取請求 |
 | 系列工具 | [`family/bin`](family/bin) | 為 [`FAMILY.md`](FAMILY.md) 中的系列約定提供審核、同步、傳播、排查、診斷和 README 產生 |
-| make 目標 | [`Makefile`](Makefile) | `test`、`test-unit`、`coverage`、`lint`、`clean` |
+| make 目標 | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 系統要求
 
@@ -46,8 +45,8 @@
 | tmux | 3.2 或以上 | 所有成員都支援的系列下限 |
 | bash | 3.2 或以上 | 程式庫和測試可在 macOS 的 `/bin/bash` 上執行 |
 | bats-core | 任何 | `make test` |
-| shellcheck | 任何 | `make lint` |
-| kcov 和 python3 | 任何 | `make coverage`，只限 Linux |
+| shfmt、shellcheck、yamllint 和 actionlint | 任何 | `make lint` |
+| Docker | 任何 | 在 Ubuntu 容器中執行的 `make test-linux` 和 `make coverage` |
 
 ## 開始一個新插件
 
@@ -60,10 +59,10 @@
    ```
 
 2. 在根目錄加入入口腳本 `example-revamped.tmux`。TPM 會執行插件目錄中的每個 `*.tmux` 檔案。把插件邏輯放在 `src/example.sh`，自己的模組放在 `src/lib/example/` 下。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) 就是以這種方式建立的完整狀態插件。
-3. 把 [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重新命名為 `EXAMPLE_REVAMPED_VERSION`。如果該常數、[`CHANGELOG.md`](CHANGELOG.md) 第一個附版本的標題和 README 中的 `version-X.Y.Z` 徽章不一致，CI 的 `version` 工作會失敗。
-4. 每個 tmux 選項都命名為 `@example_revamped_<name>`。CI 的 lint 工作從目錄名稱取得識別名稱，當 [`src/`](src) 下的某個選項沒有出現在 [`README.md`](README.md) 中時失敗。
+3. 把 [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重新命名為 `EXAMPLE_REVAMPED_VERSION`。發佈會寫入該常數；如果它和 [`CHANGELOG.md`](CHANGELOG.md) 中最新的發佈不一致，`make lint` 會失敗。
+4. 每個 tmux 選項都命名為 `@example_revamped_<name>`。`make lint` 從目錄名稱取得識別名稱，當 [`src/`](src) 下的某個選項沒有出現在 [`README.md`](README.md) 中時失敗。
 5. 從 [`family/KEYS.md`](family/KEYS.md) 的分配中最多選一個預設按鍵，其他動作預設不綁定。
-6. 把儲存庫加入 [`family/MEMBERS`](family/MEMBERS)。這兩個檔案都是共用的，所以在一個成員中修改後執行 `family/bin/propagate --message 'chore(family): add tmux-example-revamped'`，它會把檔案複製到每個成員並建立拉取請求。
+6. 把儲存庫加入 [`family/MEMBERS`](family/MEMBERS)。這兩個檔案都是共用的，所以在一個成員中修改後執行 `family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`，它會把檔案複製到旁邊檢出的每個成員並在那裏提交。每個成員的檢查通過後，推送它的 `main`。
 7. 以與本檔案相同的頁首編寫 README，並保留 `family:begin` 和 `family:end` 標記。[`family/bin/gen-readme`](family/bin/gen-readme) 會根據 [`family/MEMBERS`](family/MEMBERS) 中的成員清單和每個成員的簡介填寫兩者之間的部分。
 8. 執行「開發」一節中的檢查，直至全部以 0 結束。
 
@@ -131,13 +130,17 @@ graph LR
 
 | 指令 | 執行內容 |
 |:--------|:-------------|
+| `make fmt` | 對每個腳本執行 `shfmt -i 2` |
+| `make lint` | shfmt、shellcheck、名稱、原始碼和固定版本檢查、yamllint 和 actionlint，零問題 |
 | `make test` | bats 測試套件 |
-| `make test-unit` | [`test/lib`](test/lib) 下的單元測試 |
-| `make lint` | 對所有 shell 檔案和每個系列指令執行 warning 級別的 shellcheck |
-| `make coverage` | kcov 行覆蓋率，下限 95%，只限 Linux |
+| `make test-all` | 依次以每個已安裝的 bash 和 zsh 作為登入 shell 執行 bats 測試套件 |
+| `make test-linux` | 在 Ubuntu 容器中執行 bats 測試套件 |
+| `make coverage` | 在 Ubuntu 容器中量度 kcov 行覆蓋率，下限 95% |
 | [`family/bin/audit`](family/bin/audit) | 按系列約定檢查本儲存庫 |
 
 當本 README 中的相對連結指向不存在的路徑時，[`test/docs.bats`](test/docs.bats) 會失敗。
+
+提交遵循約定式提交格式，直接進入 `main`。`main` 上的 `ci` 通過後，`release.yml` 執行 semantic-release：上一個標籤以來的每個 `feat` 或 `fix` 都會發佈一個版本、寫入版本常數，並把說明加入 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 授權
 
