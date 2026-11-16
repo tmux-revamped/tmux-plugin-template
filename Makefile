@@ -1,11 +1,13 @@
 SHELL := /bin/sh
 PREFIX ?= $(HOME)/.local
 TOOL = template-revamped
+NAME ?=
+DEST ?= ../tmux-$(NAME)-revamped
 SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux' 'bin/*' 'test/bin/*')
 POSIX_SCRIPTS = $(shell git ls-files -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*' 'screens/*.sh')
 TEST_SCRIPTS = $(shell git ls-files -- 'test/*.bash' 'test/*.bats')
 
-.PHONY: help fmt lint test test-all test-linux coverage check screens install clean
+.PHONY: help fmt lint test test-all test-linux coverage check screens install new-member clean
 
 help:
 	@echo "targets:"
@@ -18,6 +20,7 @@ help:
 	@echo "  check       lint and test"
 	@echo "  screens     the README screens, recorded from the real tool with VHS, on macOS"
 	@echo "  install     the tool, its man page and completions under PREFIX, ~/.local by default"
+	@echo "  new-member  a new member from this template, NAME=example, in DEST, ../tmux-NAME-revamped by default"
 	@echo "  clean       remove the coverage output"
 
 fmt:
@@ -61,6 +64,9 @@ install:
 	cp -f completions/$(TOOL).fish "$(PREFIX)/share/fish/vendor_completions.d/$(TOOL).fish"
 	printf '#!/bin/sh\nexec "%s/share/$(TOOL)/bin/$(TOOL)" "$$@"\n' "$(PREFIX)" >"$(PREFIX)/bin/$(TOOL)"
 	chmod 755 "$(PREFIX)/bin/$(TOOL)"
+
+new-member:
+	sh .github/scripts/new-member.sh "$(NAME)" "$(DEST)"
 
 clean:
 	rm -rf coverage coverage-macos.json coverage-linux.json coverage-linux-warnings.log
