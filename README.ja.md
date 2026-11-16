@@ -12,72 +12,121 @@
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
-  <a href="#機能">機能</a> &nbsp;|&nbsp;
-  <a href="#動作要件">動作要件</a> &nbsp;|&nbsp;
-  <a href="#新しいプラグインの始め方">新しいプラグインの始め方</a> &nbsp;|&nbsp;
+  <a href="#クイックスタート"><strong>クイックスタート</strong></a> &nbsp;|&nbsp;
   <a href="#使い方">使い方</a> &nbsp;|&nbsp;
-  <a href="#設定">設定</a> &nbsp;|&nbsp;
-  <a href="#仕組み">仕組み</a>
+  <a href="#新しいプラグインの始め方">新しいプラグインの始め方</a> &nbsp;|&nbsp;
+  <a href="#共有ライブラリ">共有ライブラリ</a> &nbsp;|&nbsp;
+  <a href="#画面">画面</a>
 </p>
 
 </div>
 
-共有ライブラリのモジュールが**8**個。ファミリーのコマンドが**10**個。UbuntuとmacOS、x86_64とarm64にまたがるCIのテストジョブが**10**個です。
+<p align="center">
+  <img src="screens/hero.gif" alt="tmuxの中で動くtemplate-revamped。メニューのあとにdoctorの表" width="800">
+</p>
+
+```console
+$ template-revamped doctor | cat
+tmux               ok       /opt/homebrew/bin/tmux, 3.8
+gum                ok       /opt/homebrew/bin/gum, 2.0.2
+notifier           ok       osascript
+awk                ok       /usr/bin/awk, bsd 20200816
+sed                ok       /usr/bin/sed, bsd
+tr                 ok       /usr/bin/tr, bsd
+date               ok       /bin/date, bsd
+stat               ok       /usr/bin/stat, bsd
+```
+
+このリポジトリはtmuxにインストールして使うプラグインではありません。すべての`tmux-*-revamped`プラグインの出発点であり、それ自体もファミリーの一員なので、共有ファイルは他のすべてのメンバーと同一に保たれます。各メンバーが自分の名前で答えるコマンド`template-revamped`を同梱しています。サブコマンドは`doctor`、`version`、`help`で、メニューもあります。
 
 ---
 
-## 機能
+## クイックスタート
 
-このリポジトリはインストールして使うプラグインではありません。すべての`tmux-*-revamped`プラグインの出発点であり、それ自体もファミリーの一員なので、共有ファイルは他のすべてのメンバーと同一に保たれます。
-
-| 部分 | パス | 新しいプラグインが得るもの |
-|:-----|:-----|:-----------------------|
-| 共有ライブラリ | [`lib`](lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
-| テストハーネス | [`test`](test) | 単体テスト用のメモリー上のtmuxモックと、結合テスト用の専用ソケットのtmuxサーバーを備えたbatsの補助関数 |
-| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、すべてのシェルと6つのツールセット、両方のシステムを合わせた100パーセントのbashcovカバレッジ、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
-| makeのターゲット | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
-
-## 動作要件
+### 前提条件
 
 | ツール | バージョン | 用途 |
 |:-----|:--------|:---------|
-| tmux | 3.2以降 | すべてのメンバーが対応するファミリーの下限 |
-| POSIXシェル | 任意のバージョン | ライブラリは`sh`、`dash`、`bash` 3.2以降、`zsh`で動きます |
-| bats-core | 任意のバージョン | `make test` |
-| shfmt、shellcheck、yamllint、actionlint | 任意のバージョン | `make lint` |
-| Docker | 任意のバージョン | Ubuntuのコンテナで動く`make test-linux`と`make coverage` |
-| Ruby 4.0.9とBundler | 固定のバージョン | `bundle install`のあとの`make coverage` |
-| dashとzsh | 任意のバージョン | `make test-all` |
+| tmux | 3.2以降 | ファミリーの全メンバーが対応する最低バージョン |
+| POSIXシェル | 任意 | `sh`、`dash`、`bash` 3.2以降、`zsh` |
+| gum | 任意 | メニュー、表、色。なくてもすべてのコマンドがプレーンテキストで動きます |
+| gitとmake | 任意 | クローンとインストール |
 
-## 新しいプラグインの始め方
+### インストール
 
-1. 新しい名前でテンプレートをコピーし、新しいリポジトリを指すようにします。
+```bash
+git clone https://github.com/tmux-revamped/tmux-plugin-template
+cd tmux-plugin-template
+make install
+```
 
-   ```bash
-   git clone https://github.com/tmux-revamped/tmux-plugin-template tmux-example-revamped
-   cd tmux-example-revamped
-   git remote set-url origin https://github.com/tmux-revamped/tmux-example-revamped.git
-   ```
+`make install`は`template-revamped`を`~/.local/bin`に、manページとbash、zsh、fishの補完を`~/.local/share`の下に置きます。別の場所に入れるときは`make install PREFIX=/usr/local`のように`PREFIX`を指定します。
 
-2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`lib/example.sh`に、独自のモジュールは`lib/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
-3. [`lib/core.sh`](lib/core.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)にノートを書きます。
-4. tmuxオプションはすべて`@example_revamped_<name>`と名付け、すべて[`README.md`](README.md)に記載します。
-5. 既定のキーは、[`FAMILY.md`](FAMILY.md)のKey bindingsにある割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
-6. [`FAMILY.md`](FAMILY.md)のメンバー表と`cmp`ループ、そしてすべてのREADMEのファミリーの節にリポジトリを、同じ作業の中ですべてのメンバーで追加します。
-7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印の間の節をほかのメンバーからコピーして、このプラグインの行に印を付けます。
-8. 開発の節にある検査を、すべて0で終了するまで実行します。
+### 確認
 
-[`FAMILY.md`](FAMILY.md)が同一と定めるファイルは、すべてのメンバーで同じに保たれます。変更するときは、同じ作業の中ですべてのメンバーで変更します。
+```bash
+template-revamped doctor
+```
+
+`doctor`はツールごとに1行を表示し、パスと、コアツールについてはその種類とバージョンを示します。終了コードが1になるのは、必須のツールが見つからないときだけです。
 
 ## 使い方
 
-ステータスプラグインはキャッシュを読み込み、そこから描画します。ステータスラインは保存済みの値をすぐに受け取り、古い値は切り離したサブシェルで計算し直します。
+| コマンド | 動作 |
+|:--------|:-------------|
+| `template-revamped` | 端末ではメニューを表示します。このマシンの確認か、ヘルプを選べます |
+| `template-revamped doctor` | 依存するツールごとに1行。tmux、gum、デスクトップ通知、コアツール |
+| `template-revamped version` | バージョンと、tmuxのバージョン |
+| `template-revamped help` | ヘルプページ。`man template-revamped`も同じコマンド、オプション、設定を説明します |
+
+| オプション | 意味 |
+|:-------|:--------|
+| `--theme NAME` | `kodougu`、`catppuccin-mocha`、`catppuccin-latte`、`dracula`、`nord`、`gruvbox`、`tokyo-night`、`mono`のいずれか。既定は`kodougu`です |
+
+| 環境変数 | 意味 |
+|:------------|:--------|
+| `TEMPLATE_REVAMPED_THEME` | `--theme`がないときのテーマ |
+| `TEMPLATE_REVAMPED_ACCENT` | テーマのアクセントを置き換える色。`#CBA6F7`など |
+| `KODOUGU_THEME` | 上の2つがどちらもないときの、kodouguとtmux-revampedの全ツール共通のテーマ |
+| `KODOUGU_ACCENT` | `TEMPLATE_REVAMPED_ACCENT`がないときの、kodouguとtmux-revampedの全ツール共通のアクセント |
+| `NO_COLOR` | どのテーマでも色をなくします |
+
+| tmuxオプション | 意味 |
+|:------------|:--------|
+| `@revamped_theme` | ほかに何も指定がないときの、tmux-revampedの全ツール共通のテーマ。既定は`kodougu`です |
+
+テンプレートはキーを割り当てず、プレースホルダーも描画しません。
+
+## 新しいプラグインの始め方
+
+```bash
+make new-member NAME=clipboard
+```
+
+これで`../tmux-clipboard-revamped`ができます。すべてのファイルをステージした新しいgitリポジトリです。
+
+- `bin/clipboard-revamped`とそのmanページ、補完。名前と接頭辞はすべて置き換わります。`CLIPBOARD_REVAMPED_THEME`、`clipboard_revamped_help`、値が`0.0.0`の`CLIPBOARD_REVAMPED_VERSION`のようになります。
+- 共有ライブラリ、テスト、CI、リリースのワークフロー、画面のスクリプト。[`FAMILY.md`](FAMILY.md)が同一と定めるファイルは1バイトも変わりません。
+- ファミリー共通の見出しを持つエージェント向けガイドと、タイトルとファミリーの節だけのREADME。ガイドのGapsの節に残りの作業が並びます。README、プラグインのエントリーポイント、録画です。
+
+`DEST`で別のディレクトリを指定できます。たとえば`make new-member NAME=clipboard DEST=/path/to/tmux-clipboard-revamped`です。そのあと次を行います。
+
+1. ルートにエントリーポイント`clipboard-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`lib/clipboard.sh`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの形で作られた完全なステータスプラグインです。
+2. tmuxオプションはすべて`@clipboard_revamped_<name>`と名付け、ヘルプページ、manページ、補完、READMEに同じコミットで載せます。
+3. 既定のキーは[`FAMILY.md`](FAMILY.md)のKey bindingsにある割り当てから多くても1つ選び、ほかの操作はすべて未割り当てにします。
+4. `make screens`ですべての機能を録画し、テープが押すキーを字幕で示します。
+5. 同じ作業の中で、全メンバーの[`FAMILY.md`](FAMILY.md)のメンバー表と`cmp`のループ、そして全READMEのファミリーの節にリポジトリを追加します。
+6. 開発の節にあるチェックがすべて0で終わるまで実行します。
+
+## 共有ライブラリ
+
+ステータスプラグインはキャッシュを読み込み、そこから描画します。ステータスラインには保存済みの値がすぐに返り、古くなった値は切り離したサブシェルで計算し直されます。
 
 ```sh
 #!/bin/sh
 
 REVAMPED_LIB="$(cd "$(dirname "$0")/../lib" && pwd)"
-REVAMPED_CACHE_PREFIX=example_revamped
+REVAMPED_CACHE_PREFIX=clipboard_revamped
 . "${REVAMPED_LIB}/cache.sh"
 
 read_load() { uptime; }
@@ -85,62 +134,115 @@ read_load() { uptime; }
 revamped_cache_render load 5 read_load
 ```
 
-| モジュール | 関数 |
-|:-------|:----------|
-| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale` |
+| モジュール | プラグインが得るもの |
+|:-------|:-----------------------|
+| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale`。値はすべてtmuxオプションに保持されます |
 | [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`revamped_ticker_start`、`revamped_ticker_run`、`revamped_ticker_interval` |
-| [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`revamped_publish_add`、`revamped_publish_commit`、すべての`#`を二重にする`revamped_publish_escape`、固定幅のための`revamped_publish_pad`と`revamped_publish_width` |
-| [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
-| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
+| [`lib/publish.sh`](lib/publish.sh) | まとめてオプションを書く`revamped_publish_add`と`revamped_publish_commit`、`#`をすべて二重にする`revamped_publish_escape`、固定幅のための`revamped_publish_pad`と`revamped_publish_width` |
+| [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさ |
+| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。どれもプロセスごとに1回だけ計算します |
+| [`lib/notify.sh`](lib/notify.sh) | `revamped_notify_if_enabled`。プラグインのオプションが`1`のとき、`osascript`か`notify-send`でデスクトップ通知を出します |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
-| [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
-| [`lib/core.sh`](lib/core.sh) | バージョンの定数と共通の既定値 |
+| [`lib/log.sh`](lib/log.sh) | 任意で有効にするエラーログ`revamped_log_error` |
+| [`lib/ui.sh`](lib/ui.sh)と[`lib/table.awk`](lib/table.awk) | 端末の画面。ヘッダー、入力、表、ログ、スピナー、ヘルプページを、gumが使えるところではgumで、それ以外ではプレーンテキストで描きます |
+| [`lib/cli.sh`](lib/cli.sh) | メンバーのコマンドのためのテーマ選択、メニュー、使い方のエラー、ヘルプページ |
+| [`lib/doctor.sh`](lib/doctor.sh) | `doctor`の各行。ツールごとのパス、種類、バージョン |
+| [`lib/core.sh`](lib/core.sh) | バージョン定数 |
 
-プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来る文字列は、ステータスラインに届く前に`revamped_publish_escape`を通します。これでtmuxのフォーマットとして実行されることはありません。
+プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来るテキストは、ステータスラインに届く前に`revamped_publish_escape`を通します。こうするとtmuxのフォーマットとして実行されることがありません。
 
-## 設定
+ライブラリは、プラグインが選んだ接頭辞の下にある次のオプションを読みます。
 
-テンプレートはキーを割り当てず、独自のオプションも読みません。ライブラリは、プラグインが選んだ接頭辞のもとで次のオプションを読みます。
-
-| オプション | 読むもの | 意味 |
+| オプション | 読むモジュール | 意味 |
 |:-------|:--------|:--------|
-| `@<prefix>_<key>` | キャッシュ | キャッシュした値。経過時間を表す`_ts`と、更新中を表す`_lock`が付随します |
-| `@<prefix>_interval` | ticker | `minute`か、バックグラウンド描画の間隔の秒数。それ以外は`status-interval`、さらに5の順で代わりに使います |
+| `@<prefix>_<key>` | cache | キャッシュした値。経過時間は`_ts`、更新中は`_lock` |
+| `@<prefix>_interval` | ticker | `minute`、またはバックグラウンド描画の間隔の秒数。それ以外は`status-interval`、次に5になります |
 | `@<prefix>_ticker_pid` | ticker | バックグラウンド描画を担当するプロセス |
-| `@<prefix>_fixed_width` | publish | `on`で値を本来の幅まで詰める |
-| `@<prefix>_<metric>_width` | publish | 1つの値の幅を直接指定 |
-| `@<namespace>_enable_logging` | エラーログ | `1`で`~/.tmux/<namespace>-logs/<namespace>.log`に書き込み、1 MBを超えるとローテーション |
+| `@<prefix>_fixed_width` | publish | `on`で値を本来の幅に詰めます |
+| `@<prefix>_<metric>_width` | publish | 1つの値の幅を明示します |
+| `@<namespace>_enable_logging` | エラーログ | `1`で`~/.tmux/<namespace>-logs/<namespace>.log`に書きます。1 MBを超えるとローテーションします |
 
-`<prefix>`は、キャッシュでは`REVAMPED_CACHE_PREFIX`、tickerとpublishの関数では渡した引数です。`<namespace>`は`REVAMPED_LOG_NS`の`-`を`_`に置き換えたものです。
-
-## 仕組み
+`<prefix>`は、キャッシュでは`REVAMPED_CACHE_PREFIX`、tickerとpublishの関数では渡された引数です。`<namespace>`は`REVAMPED_LOG_NS`の`-`を`_`に変えたものです。
 
 ```mermaid
 graph LR
-    Status[ステータスライン] -->|読み取り| Option[tmux オプション]
-    Status -->|古いとき| Worker[切り離したサブシェル]
-    Worker -->|ロックしてから計算| Option
-    Ticker[バックグラウンド描画] -->|1 回ごとにまとめて書き込み| Option
+    Status[status line] -->|reads| Option[tmux option]
+    Status -->|when stale| Worker[detached subshell]
+    Worker -->|lock, then compute| Option
+    Ticker[background renderer] -->|one batched write per tick| Option
 ```
 
-`revamped_cache_render`は保存済みのオプションの値を返します。値が指定した経過時間より古ければ、ロックのオプションを設定し、切り離したサブシェルで更新を始めるので、描画がコマンドを待つことはありません。20秒より古いロックは無効とみなすので、異常終了した更新が次の更新を妨げることはありません。状態はすべてtmuxサーバーのオプションにあるので、ディスクには何も書かず、サーバーが止まれば消えます。
+`revamped_cache_render`は保存済みのオプションの値を返します。値が指定された時間より古いと、ロック用のオプションを設定し、切り離したサブシェルで更新を始めるので、描画がコマンドを待つことはありません。20秒より古いロックは止まったものとみなすので、異常終了した更新が次の更新を妨げません。状態はすべてtmuxサーバーのオプションにあるため、ディスクには何も書かず、サーバーが止まると消えます。
 
-プレースホルダーが頻繁に実行されるプラグインでは、`revamped_ticker_run`がサーバーごとに1つのバックグラウンドプロセスを保ちます。このプロセスは`@<prefix>_ticker_pid`を取得し、1回ごとに必要なオプションを1回のtmux呼び出しですべて読み、描画し、すべての値と再描画をもう1回の呼び出しで書き込み、別のプロセスがこのオプションを取得するかサーバーが止まると終了します。
+プレースホルダーを頻繁に描画するプラグインのために、`revamped_ticker_run`はサーバーごとに1つのバックグラウンドプロセスを保ちます。`@<prefix>_ticker_pid`を確保し、1回の描画ごとに必要なオプションをすべて1回のtmux呼び出しで読み、描画し、すべての値と再描画をもう1回の呼び出しで書きます。別のプロセスがオプションを確保するか、サーバーが止まると終了します。
+
+<a id="画面"></a>
+
+## 画面
+
+<details>
+<summary><code>make screens</code>で本物のtmuxの中から録画したすべての画面。押したキーはステータスラインに表示されます</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="template-revamped: メニュー"><br><sub>メニュー。<code>hero.tape</code>より</sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="template-revamped: doctorがすべてのツールを確認"><br><sub>doctorがすべてのツールを確認。<code>hero.tape</code>より</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/plain-menu.png" alt="template-revamped: gumなしのメニュー"><br><sub>gumなしのメニュー。<code>stills.tape</code>より</sub></td>
+<td width="50%" valign="top"><img src="screens/plain-doctor.png" alt="template-revamped: gumなしのdoctor。macOS付属のツールで実行"><br><sub>gumなしのdoctor。macOS付属のツールで実行。<code>stills.tape</code>より</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/version.png" alt="template-revamped: バージョン"><br><sub>バージョン。<code>stills.tape</code>より</sub></td>
+<td width="50%" valign="top"><img src="screens/error.png" alt="template-revamped: 不明なコマンド"><br><sub>不明なコマンド。<code>stills.tape</code>より</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/accent.png" alt="template-revamped: TEMPLATE_REVAMPED_ACCENTによるアクセント"><br><sub><code>TEMPLATE_REVAMPED_ACCENT</code>によるアクセント。<code>stills.tape</code>より</sub></td>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="template-revamped: 6つのテーマのヘッダー"><br><sub>6つのテーマのヘッダー。<code>themes.tape</code>より</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/help.png" alt="template-revamped: ヘルプページ"><br><sub>ヘルプページ。<code>help.tape</code>より</sub></td>
+<td width="50%" valign="top"></td>
+</tr>
+</table>
+
+</details>
+
+## 移植性
+
+ライブラリとツールはPOSIX `sh`です。CIは下の各行ですべてのテストを実行します。
+
+| シェル | 状態 |
+|:------|:-------|
+| `dash`、macOSの`/bin/sh` | 対応 |
+| `bash` 3.2と5.x、システムの`zsh`とHomebrewの`zsh` | 対応 |
+
+| システム | 状態 |
+|:-------|:-------|
+| macOS | Apple SiliconとIntelのTahoe。付属のツール、HomebrewのGNUツール、Homebrewのuutilsで確認 |
+| Linux | x86_64とarm64のUbuntu 26.04。GNU coreutils、uutils、BusyBoxで確認 |
+| FreeBSD、OpenBSD、NetBSD | CIの対象外 |
+
+`template-revamped doctor`は`gnu 9.12`、`uutils 0.12.0`、`bsd 20200816`のように、各コアツールの種類とバージョンを示します。そのため不具合の報告から、どのツールで動いたかがわかります。
 
 ## 開発
 
-| コマンド | 実行するもの |
+| コマンド | 実行内容 |
 |:--------|:-------------|
-| `make fmt` | すべてのスクリプトに`shfmt -i 2`を実行 |
-| `make lint` | shfmt、shellcheck、yamllint、actionlintを指摘ゼロで実行 |
-| `make test` | batsのテストスイート |
-| `make test-all` | インストールされているbashとzshをそれぞれログインシェルにしてbatsのテストスイートを実行 |
-| `make test-linux` | Ubuntuのコンテナでbatsのテストスイートを実行 |
-| `make coverage` | このMacとUbuntuのコンテナでbashcovを実行し、結果を合わせて100パーセントを求めます |
+| `make fmt` | すべてのスクリプトにshfmt `-i 2`をかけます |
+| `make lint` | shfmt、ShellCheck、mandoc、yamllint、actionlintを、指摘ゼロで通します |
+| `make test` | システムの`sh`でbatsのテスト |
+| `make test-all` | インストール済みのすべてのシェルでテスト。macOSではbashとzshの両方のビルドを含みます |
+| `make test-linux` | Ubuntuのコンテナでテスト |
+| `make coverage` | このMacとUbuntuのコンテナでbashcovを実行し、合算して100パーセントで判定します |
+| `make screens` | 上の画面を、本物のツールからtmuxの中でVHSで録画します。macOSで実行します |
+| `make install` | ツール、manページ、補完を`PREFIX`の下に置きます |
+| `make new-member NAME=<name>` | 新しいメンバー。新しいプラグインの始め方の節を参照 |
 
-[`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指していると失敗します。
+[`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指すと失敗します。
 
-コミットはConventional Commitsの形式で、`main`に直接入れます。`main`で`ci`が成功すると、`release.yml`がsemantic-releaseを実行します。前回のタグ以降の`feat`か`fix`がリリースを公開し、バージョン定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)にノートを追加します。
+コミットはConventional Commitsの形式に従い、そのまま`main`に入ります。`main`で`ci`が成功すると、`release.yml`がsemantic-releaseを実行します。前回のタグ以降に`feat`か`fix`があればリリースを公開し、バージョン定数を更新し、変更内容を[`CHANGELOG.md`](CHANGELOG.md)に追加します。
 
 ## ライセンス
 

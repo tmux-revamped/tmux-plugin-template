@@ -15,6 +15,9 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 | [`lib/core.sh`](lib/core.sh) | The template's version and constants |
 | [`test/`](test) | The shared library's suites, identical in every member, and the CI scripts' suites, such as [`test/recover.bats`](test/recover.bats) |
 | [`test/docs.bats`](test/docs.bats) | The README link check |
+| [`test/golden/`](test/golden) | The golden transcripts of `help`, `version`, `doctor` and the usage errors, one per system, checked by [`test/golden.bats`](test/golden.bats) |
+| [`screens/`](screens) | The VHS tapes, the recording's tmux config and the stills the README shows |
+| [`.github/scripts/new-member.sh`](.github/scripts/new-member.sh) | `make new-member`, which scaffolds a new member; it never reaches a member |
 | [`.github/scripts/`](.github/scripts) | The scripts only CI and the release run: version stamping, CI state and recovery |
 
 ## Names
@@ -40,10 +43,4 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 ## Gaps against FAMILY.md
 
-As of 2026-11-16:
-
-- No `make new-member NAME=<name>` scaffold.
-- No `screens/`: no VHS recording of each feature, no on-screen caption of the keys each recording presses, and no recordings in the README.
-- The README sections are not the family's order of Quick start, Usage, topic sections, Portability, Development and License.
-- No golden transcripts.
-- The Makefile has no `screens` target, since there is no screen yet.
+As of 2026-11-16, none.

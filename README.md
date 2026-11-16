@@ -12,64 +12,113 @@ English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](REA
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-plugin-template?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
-  <a href="#what-it-does">What it does</a> &nbsp;|&nbsp;
-  <a href="#requirements">Requirements</a> &nbsp;|&nbsp;
-  <a href="#starting-a-new-plugin">Starting a new plugin</a> &nbsp;|&nbsp;
+  <a href="#quick-start"><strong>Quick start</strong></a> &nbsp;|&nbsp;
   <a href="#usage">Usage</a> &nbsp;|&nbsp;
-  <a href="#configuration">Configuration</a> &nbsp;|&nbsp;
-  <a href="#how-it-works">How it works</a>
+  <a href="#starting-a-new-plugin">Starting a new plugin</a> &nbsp;|&nbsp;
+  <a href="#the-shared-library">The shared library</a> &nbsp;|&nbsp;
+  <a href="#screens">Screens</a>
 </p>
 
 </div>
 
-**8** shared library modules. **10** family commands. **10** CI test jobs across Ubuntu and macOS, x86_64 and arm64.
+<p align="center">
+  <img src="screens/hero.gif" alt="template-revamped running inside tmux: the menu, then the doctor table" width="800">
+</p>
+
+```console
+$ template-revamped doctor | cat
+tmux               ok       /opt/homebrew/bin/tmux, 3.8
+gum                ok       /opt/homebrew/bin/gum, 2.0.2
+notifier           ok       osascript
+awk                ok       /usr/bin/awk, bsd 20200816
+sed                ok       /usr/bin/sed, bsd
+tr                 ok       /usr/bin/tr, bsd
+date               ok       /bin/date, bsd
+stat               ok       /usr/bin/stat, bsd
+```
+
+This repository is not a plugin you install into tmux. It is the base every `tmux-*-revamped` plugin starts from, and a member of the family itself, so its shared files stay identical to every other member's. It ships `template-revamped`, the command every member answers with its own name: `doctor`, `version`, `help` and a menu.
 
 ---
 
-## What it does
+## Quick start
 
-This repository is not a plugin you install. It is the base every `tmux-*-revamped` plugin starts from, and a member of the family itself, so its shared files stay identical to every other member's.
-
-| Part | Path | What a new plugin gets |
-|:-----|:-----|:-----------------------|
-| Shared library | [`lib`](lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
-| Test harness | [`test`](test) | bats helpers with an in-memory tmux mock for unit tests and a private-socket tmux server for integration tests |
-| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, every shell and six toolsets, 100 percent bashcov coverage merged from both systems, and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
-| Make targets | [`Makefile`](Makefile) | `fmt`, `lint`, `test`, `test-all`, `test-linux`, `coverage`, `check`, `clean` |
-
-## Requirements
+### Prerequisites
 
 | Tool | Version | Used for |
 |:-----|:--------|:---------|
 | tmux | 3.2 or later | the family floor every member supports |
-| A POSIX shell | any | the library runs under `sh`, `dash`, `bash` 3.2 and later and `zsh` |
-| bats-core | any | `make test` |
-| shfmt, shellcheck, yamllint and actionlint | any | `make lint` |
-| Docker | any | `make test-linux` and `make coverage`, which run in an Ubuntu container |
-| Ruby 4.0.9 and Bundler | as pinned | `make coverage`, after `bundle install` |
-| dash and zsh | any | `make test-all` |
+| A POSIX shell | any | `sh`, `dash`, `bash` 3.2 and later, and `zsh` |
+| gum | optional | the menu, tables and colours; without it every command prints plain text |
+| git and make | any | cloning and installing |
+
+### Install
+
+```bash
+git clone https://github.com/tmux-revamped/tmux-plugin-template
+cd tmux-plugin-template
+make install
+```
+
+`make install` puts `template-revamped` in `~/.local/bin`, its man page and its bash, zsh and fish completions under `~/.local/share`. Set `PREFIX` to install elsewhere, as in `make install PREFIX=/usr/local`.
+
+### Verify
+
+```bash
+template-revamped doctor
+```
+
+`doctor` prints one row per tool, with its path and, for a core tool, its flavor and version. It exits 1 only when a required tool is missing.
+
+## Usage
+
+| Command | What it does |
+|:--------|:-------------|
+| `template-revamped` | On a terminal, a menu: check this machine, or read the help |
+| `template-revamped doctor` | One row per dependency: tmux, gum, the desktop notifier and the core tools |
+| `template-revamped version` | The version, then the tmux version |
+| `template-revamped help` | The help page. `man template-revamped` documents the same commands, options and settings |
+
+| Option | Meaning |
+|:-------|:--------|
+| `--theme NAME` | `kodougu`, `catppuccin-mocha`, `catppuccin-latte`, `dracula`, `nord`, `gruvbox`, `tokyo-night` or `mono`. The default is `kodougu` |
+
+| Environment | Meaning |
+|:------------|:--------|
+| `TEMPLATE_REVAMPED_THEME` | The theme when `--theme` is not given |
+| `TEMPLATE_REVAMPED_ACCENT` | A colour such as `#CBA6F7` that replaces the theme's accent |
+| `KODOUGU_THEME` | The theme of every kodougu and tmux-revamped tool, when neither of the above is set |
+| `KODOUGU_ACCENT` | The accent of every kodougu and tmux-revamped tool, when `TEMPLATE_REVAMPED_ACCENT` is not set |
+| `NO_COLOR` | Turns colour off in every theme |
+
+| tmux option | Meaning |
+|:------------|:--------|
+| `@revamped_theme` | The theme of every tmux-revamped tool, when nothing else sets one. The default is `kodougu` |
+
+The template binds no key and draws no placeholder.
 
 ## Starting a new plugin
 
-1. Copy the template under the new name and point it at the new repository:
+```bash
+make new-member NAME=clipboard
+```
 
-   ```bash
-   git clone https://github.com/tmux-revamped/tmux-plugin-template tmux-example-revamped
-   cd tmux-example-revamped
-   git remote set-url origin https://github.com/tmux-revamped/tmux-example-revamped.git
-   ```
+This creates `../tmux-clipboard-revamped`, a new git repository with every file staged:
 
-2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `lib/example.sh` and its own modules under `lib/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
-3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it and writes the notes to [`CHANGELOG.md`](CHANGELOG.md).
-4. Name every tmux option `@example_revamped_<name>`, and document every one in [`README.md`](README.md).
-5. Pick at most one default key from the allocation under Key bindings in [`FAMILY.md`](FAMILY.md), and leave every other action unbound by default.
-6. Add the repository to the member table and the `cmp` loop in [`FAMILY.md`](FAMILY.md), and to the family section of every README, in every member in the same task.
-7. Write the README with the same header as this one, and copy the section between the `family:begin` and `family:end` markers from another member, marking this plugin's row.
-8. Run the gates in the Development section until all of them exit 0.
+- `bin/clipboard-revamped`, its man page and completions, with every name and prefix renamed: `CLIPBOARD_REVAMPED_THEME`, `clipboard_revamped_help`, `CLIPBOARD_REVAMPED_VERSION` at `0.0.0`.
+- The shared library, the suites, CI, the release workflow and the screens scripts, byte for byte where [`FAMILY.md`](FAMILY.md) lists a file as identical.
+- An agent guide with the family's headings, and a README holding its title and the family section. Its Gaps section lists what is left: the README, the plugin's entry point and its recordings.
 
-Every file [`FAMILY.md`](FAMILY.md) lists as identical stays the same in every member. Change one only by changing it in every member in the same task.
+`DEST` picks another directory, as in `make new-member NAME=clipboard DEST=/path/to/tmux-clipboard-revamped`. Then:
 
-## Usage
+1. Add the entry point `clipboard-revamped.tmux` at the root; TPM runs every `*.tmux` file in a plugin directory. Put the plugin's logic in `lib/clipboard.sh`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
+2. Name every tmux option `@clipboard_revamped_<name>`, and list each one in the help page, the man page, the completions and the README in the same commit.
+3. Pick at most one default key from the allocation under Key bindings in [`FAMILY.md`](FAMILY.md), and leave every other action unbound.
+4. Record every feature with `make screens`, captioning each key the tape presses.
+5. Add the repository to the member table and the `cmp` loop in [`FAMILY.md`](FAMILY.md), and to the family section of every README, in every member in the same task.
+6. Run the gates under Development until all of them exit 0.
+
+## The shared library
 
 A status plugin sources the cache and renders from it. The status line gets the stored value at once, and a stale value is recomputed in a detached subshell:
 
@@ -77,7 +126,7 @@ A status plugin sources the cache and renders from it. The status line gets the 
 #!/bin/sh
 
 REVAMPED_LIB="$(cd "$(dirname "$0")/../lib" && pwd)"
-REVAMPED_CACHE_PREFIX=example_revamped
+REVAMPED_CACHE_PREFIX=clipboard_revamped
 . "${REVAMPED_LIB}/cache.sh"
 
 read_load() { uptime; }
@@ -85,35 +134,35 @@ read_load() { uptime; }
 revamped_cache_render load 5 read_load
 ```
 
-| Module | Functions |
-|:-------|:----------|
-| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`, `revamped_cache_get`, `revamped_cache_set`, `revamped_cache_age`, `revamped_cache_is_fresh`, `revamped_cache_refresh_if_stale`, `revamped_cache_set_if_stale` |
-| [`lib/ticker.sh`](lib/ticker.sh) | `revamped_ticker_start`, `revamped_ticker_run`, `revamped_ticker_interval` for one background renderer per server |
-| [`lib/publish.sh`](lib/publish.sh) | `revamped_publish_add`, `revamped_publish_commit` for batched option writes, `revamped_publish_escape` to double every `#`, `revamped_publish_pad` and `revamped_publish_width` for fixed widths |
-| [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
-| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd`, `revamped_is_apple_silicon`, each computed once per process |
+| Module | What it gives a plugin |
+|:-------|:-----------------------|
+| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`, `revamped_cache_get`, `revamped_cache_set`, `revamped_cache_age`, `revamped_cache_is_fresh`, `revamped_cache_refresh_if_stale` and `revamped_cache_set_if_stale`, with every value kept in tmux options |
+| [`lib/ticker.sh`](lib/ticker.sh) | `revamped_ticker_start`, `revamped_ticker_run` and `revamped_ticker_interval`, for one background renderer per server |
+| [`lib/publish.sh`](lib/publish.sh) | `revamped_publish_add` and `revamped_publish_commit` for batched option writes, `revamped_publish_escape` to double every `#`, and `revamped_publish_pad` and `revamped_publish_width` for fixed widths |
+| [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, and pane and window sizes |
+| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd` and `revamped_is_apple_silicon`, each computed once per process |
+| [`lib/notify.sh`](lib/notify.sh) | `revamped_notify_if_enabled`, a desktop notification through `osascript` or `notify-send` when the plugin's option is `1` |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
-| [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
-| [`lib/core.sh`](lib/core.sh) | the version constant and shared defaults |
+| [`lib/log.sh`](lib/log.sh) | `revamped_log_error`, an opt-in error log |
+| [`lib/ui.sh`](lib/ui.sh) and [`lib/table.awk`](lib/table.awk) | The terminal interface: the header, prompts, tables, logs, spinners and help pages, drawn with gum where it can and as plain text everywhere else |
+| [`lib/cli.sh`](lib/cli.sh) | Theme selection, the menu, usage errors and the help page for a member's command |
+| [`lib/doctor.sh`](lib/doctor.sh) | The `doctor` rows: each tool's path, flavor and version |
+| [`lib/core.sh`](lib/core.sh) | The version constant |
 
 Any text that comes from outside the user's config, such as a process name, a network response or a file name, goes through `revamped_publish_escape` before it reaches the status line, so it cannot run as a tmux format.
 
-## Configuration
-
-The template binds no key and reads no option of its own. The library reads these options under the prefix a plugin chooses:
+The library reads these options under the prefix a plugin chooses:
 
 | Option | Read by | Meaning |
 |:-------|:--------|:--------|
-| `@<prefix>_<key>` | cache | a cached value, with `_ts` for its age and `_lock` while a refresh runs |
+| `@<prefix>_<key>` | cache | A cached value, with `_ts` for its age and `_lock` while a refresh runs |
 | `@<prefix>_interval` | ticker | `minute`, or seconds between background renders. Anything else falls back to `status-interval`, then 5 |
-| `@<prefix>_ticker_pid` | ticker | the process that owns the background renderer |
+| `@<prefix>_ticker_pid` | ticker | The process that owns the background renderer |
 | `@<prefix>_fixed_width` | publish | `on` pads a value to its natural width |
-| `@<prefix>_<metric>_width` | publish | explicit width for one value |
+| `@<prefix>_<metric>_width` | publish | An explicit width for one value |
 | `@<namespace>_enable_logging` | error log | `1` writes to `~/.tmux/<namespace>-logs/<namespace>.log`, rotated past 1 MB |
 
 `<prefix>` is `REVAMPED_CACHE_PREFIX` for the cache and the argument passed to the ticker and publish functions. `<namespace>` is `REVAMPED_LOG_NS` with `-` turned into `_`.
-
-## How it works
 
 ```mermaid
 graph LR
@@ -127,16 +176,69 @@ graph LR
 
 For plugins whose placeholders run often, `revamped_ticker_run` keeps one background process per server. It claims `@<prefix>_ticker_pid`, reads every option it needs in one tmux call per tick, renders, writes all values and the redraw in one more call, and exits when another process claims the option or the server stops.
 
+<a id="screens"></a>
+
+## Screens
+
+<details>
+<summary>Every screen, recorded inside a real tmux with <code>make screens</code>, with each key on the status line</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="template-revamped: The menu"><br><sub>The menu, from <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="template-revamped: doctor checks every tool"><br><sub>doctor checks every tool, from <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/plain-menu.png" alt="template-revamped: The menu without gum"><br><sub>The menu without gum, from <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-doctor.png" alt="template-revamped: doctor without gum, on the tools macOS ships"><br><sub>doctor without gum, on the tools macOS ships, from <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/version.png" alt="template-revamped: The version"><br><sub>The version, from <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/error.png" alt="template-revamped: An unknown command"><br><sub>An unknown command, from <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/accent.png" alt="template-revamped: An accent from TEMPLATE_REVAMPED_ACCENT"><br><sub>An accent from <code>TEMPLATE_REVAMPED_ACCENT</code>, from <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="template-revamped: The header in six themes"><br><sub>The header in six themes, from <code>themes.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/help.png" alt="template-revamped: The help page"><br><sub>The help page, from <code>help.tape</code></sub></td>
+<td width="50%" valign="top"></td>
+</tr>
+</table>
+
+</details>
+
+## Portability
+
+The library and the tool are POSIX `sh`. CI runs every suite on each row below.
+
+| Shell | Status |
+|:------|:-------|
+| `dash`, `/bin/sh` on macOS | Supported |
+| `bash` 3.2 and 5.x, the system's `zsh` and Homebrew's | Supported |
+
+| System | Status |
+|:-------|:-------|
+| macOS | Tahoe on Apple Silicon and Intel, with the tools it ships, Homebrew's GNU tools and Homebrew's uutils |
+| Linux | Ubuntu 26.04 on x86_64 and arm64, with GNU coreutils, uutils and BusyBox |
+| FreeBSD, OpenBSD, NetBSD | Not covered by CI |
+
+`template-revamped doctor` names the flavor and version of every core tool, such as `gnu 9.12`, `uutils 0.12.0` or `bsd 20200816`, so a bug report says which tools ran.
+
 ## Development
 
 | Command | What it runs |
 |:--------|:-------------|
 | `make fmt` | shfmt `-i 2` on every script |
-| `make lint` | shfmt, shellcheck, yamllint and actionlint, at zero findings |
-| `make test` | the bats suite |
-| `make test-all` | the bats suite once with every installed bash and zsh as the login shell |
-| `make test-linux` | the bats suite in an Ubuntu container |
-| `make coverage` | bashcov on this Mac and in an Ubuntu container, merged and gated at 100 percent |
+| `make lint` | shfmt, ShellCheck, mandoc, yamllint and actionlint, at zero findings |
+| `make test` | The bats suites under the system `sh` |
+| `make test-all` | The suites under every installed shell, both builds of bash and zsh on macOS |
+| `make test-linux` | The suites in an Ubuntu container |
+| `make coverage` | bashcov on this Mac and in the Ubuntu container, merged and gated at 100 percent |
+| `make screens` | The screens above, recorded from the real tool inside tmux with VHS, on macOS |
+| `make install` | The tool, its man page and completions under `PREFIX` |
+| `make new-member NAME=<name>` | A new member, as under Starting a new plugin |
 
 [`test/docs.bats`](test/docs.bats) fails when a relative link in this README points at a path that does not exist.
 
