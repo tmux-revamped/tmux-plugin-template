@@ -1,0 +1,3 @@
+$ template-revamped
+template-revamped: no command given. run 'template-revamped help' for usage.
+exit 1

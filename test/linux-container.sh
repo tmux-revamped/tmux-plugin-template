@@ -9,6 +9,7 @@ docker run --rm \
   -w /repo \
   -e REVAMPED_TEST_SHELLS="${REVAMPED_TEST_SHELLS:-}" \
   -e REVAMPED_TEST_JOBS="${REVAMPED_TEST_JOBS:-}" \
+  -e REVAMPED_TEST_RECORD="${REVAMPED_TEST_RECORD:-}" \
   "${image}" \
   sh -c '
     set -eu

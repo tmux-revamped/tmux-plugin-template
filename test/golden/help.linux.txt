@@ -1,0 +1,30 @@
+$ template-revamped help
+template-revamped - the starting point for a tmux-revamped plugin
+
+usage:
+  template-revamped doctor    check this machine
+  template-revamped version   print the version
+  template-revamped help      print this page
+
+options:
+  --theme NAME   the look: kodougu, catppuccin-mocha, catppuccin-latte,
+                 dracula, nord, gruvbox, tokyo-night or mono
+
+environment:
+  TEMPLATE_REVAMPED_THEME    the look, when --theme is not given
+  TEMPLATE_REVAMPED_ACCENT   a colour such as #CBA6F7 for the accent
+  KODOUGU_THEME              the family look, when neither is given
+  KODOUGU_ACCENT             the family accent, when the tool's is unset
+  NO_COLOR                   turn colour off
+
+tmux options:
+  @revamped_theme   the family look, when nothing else sets it (default kodougu)
+
+notes:
+  The template binds no key and draws no placeholder. Every tmux-revamped
+  plugin starts from it and answers the same three commands.
+
+examples:
+  template-revamped doctor
+  template-revamped --theme nord help
+exit 0

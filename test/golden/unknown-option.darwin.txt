@@ -1,0 +1,3 @@
+$ template-revamped --frobnicate
+template-revamped: unknown option '--frobnicate'. run 'template-revamped help' for usage.
+exit 1
