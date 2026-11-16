@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.0...v1.2.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **new-member:** keep the .PHONY line ([457248d](https://github.com/tmux-revamped/tmux-plugin-template/commit/457248d5b2bfbce6ef0c25f432d938f667286d12))
+
 # [1.2.0](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.1.0...v1.2.0) (2026-11-16)
 
 
