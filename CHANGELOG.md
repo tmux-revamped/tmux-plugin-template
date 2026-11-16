@@ -1,5 +1,15 @@
 # Changelog
 
+# [1.2.0](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.1.0...v1.2.0) (2026-11-16)
+
+
+### Features
+
+* add the man page, completions and install ([766e5bf](https://github.com/tmux-revamped/tmux-plugin-template/commit/766e5bf373aba6a925f9d5a94ae2a6d172a24350))
+* add the template-revamped command ([a1bc92b](https://github.com/tmux-revamped/tmux-plugin-template/commit/a1bc92b0654e42630566f2f0a3f0c88c7eeaaafc))
+* record every screen inside a real tmux ([0fa4701](https://github.com/tmux-revamped/tmux-plugin-template/commit/0fa4701ac66bd69ea5d0be6e769469d1d29cad5c))
+* scaffold a new member with make new-member ([0680096](https://github.com/tmux-revamped/tmux-plugin-template/commit/0680096c787adf1ebb039538fd1cacf9f270560b))
+
 # [1.1.0](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.0.0...v1.1.0) (2026-11-16)
 
 
