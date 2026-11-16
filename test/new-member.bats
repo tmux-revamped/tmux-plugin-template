@@ -70,6 +70,7 @@ scaffold() {
   [[ ! -e "${dest}/.github/scripts/new-member.sh" ]]
   run grep -c 'new-member' "${dest}/Makefile"
   [[ "${output}" == "0" ]]
+  grep -q '^\.PHONY: help fmt lint test test-all test-linux coverage check screens install clean$' "${dest}/Makefile"
   grep -q '^<!-- family:begin -->$' "${dest}/README.md"
   grep -q '^## Gaps against FAMILY.md$' "${dest}/AGENTS.md"
 }

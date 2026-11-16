@@ -64,7 +64,7 @@ write_readme() {
 }
 
 drop_scaffold_target() {
-  awk '/^NAME \?=|^DEST \?=|new-member/ { skip = /^new-member:/; next } skip { skip = 0; next } { print }' "$1/Makefile" >"$1/Makefile.new"
+  awk '/^\.PHONY:/ { sub(/ new-member/, "") } /^NAME \?=|^DEST \?=|^new-member:|^\t@echo "  new-member/ { skip = /^new-member:/; next } skip { skip = 0; next } { print }' "$1/Makefile" >"$1/Makefile.new"
   mv -f "$1/Makefile.new" "$1/Makefile"
 }
 
