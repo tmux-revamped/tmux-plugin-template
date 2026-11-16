@@ -1,5 +1,30 @@
 # Changelog
 
+# [1.1.0](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.0.0...v1.1.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **ci:** read the first released version, not Unreleased ([0d27735](https://github.com/tmux-revamped/tmux-plugin-template/commit/0d27735683c884df3cfa5151f5f4dc303b48d017))
+* **family:** fail when git cannot read a mode ([f040d49](https://github.com/tmux-revamped/tmux-plugin-template/commit/f040d494c193e230d36090b2a8a2cebd6ceac808))
+* **family:** honor only active exceptions ([0e3e4e7](https://github.com/tmux-revamped/tmux-plugin-template/commit/0e3e4e7662b6f0e6c1d21b7c894c2cb04fff00a3))
+* **family:** read html taglines in gen-readme ([74fe0c6](https://github.com/tmux-revamped/tmux-plugin-template/commit/74fe0c6af47d4a2831fe12cdc1099406922cff66))
+* **family:** reject unquoted replacements ([0e2db9b](https://github.com/tmux-revamped/tmux-plugin-template/commit/0e2db9b1677aca26030326fb005e6a8a28932990))
+* **family:** require executable entry points ([c526cae](https://github.com/tmux-revamped/tmux-plugin-template/commit/c526cae2914fa25fdf32c43cd1200762378b773a))
+* **family:** stage only the owned files on propagate ([be0c2a5](https://github.com/tmux-revamped/tmux-plugin-template/commit/be0c2a57d7fd40393ef27f562b5eaf04979917c4))
+* make the suite portable across the runners ([0312588](https://github.com/tmux-revamped/tmux-plugin-template/commit/031258807b239d8f6d53d151d8d01ab20e7ce1ca))
+* quote the coverage path and share one Makefile ([a7d0dfa](https://github.com/tmux-revamped/tmux-plugin-template/commit/a7d0dfaff4ae58e3b03c61b031b9c6a4fcfb63cc))
+* **test:** start the test server without tmux.conf ([62d5159](https://github.com/tmux-revamped/tmux-plugin-template/commit/62d515946a9a38ca966270c2f8b263db69f053ee))
+
+
+### Features
+
+* add a shared desktop notifier ([72011c2](https://github.com/tmux-revamped/tmux-plugin-template/commit/72011c2884aa2e35dd32b94f6ffdb7ea0ed8aa81))
+* **family:** accept bot updates in the audit ([c1d415e](https://github.com/tmux-revamped/tmux-plugin-template/commit/c1d415ec37fbe4c19df41cc0a511d4f46c87310a))
+* **family:** add the family contract and tooling ([ed4de46](https://github.com/tmux-revamped/tmux-plugin-template/commit/ed4de46114494f1565fa9514ed3502b77e3a4012))
+* **family:** measure key clashes against a live server ([d37236e](https://github.com/tmux-revamped/tmux-plugin-template/commit/d37236edb8a9c9f9d5f5bd60d24fb10f32cf80ee))
+* **family:** one shared core and one pipeline ([84a64c7](https://github.com/tmux-revamped/tmux-plugin-template/commit/84a64c775718e1dc6025909e4228a59b9925f3d8))
+
 ## [1.0.0] - 2026-06-19
 
 ### Added
