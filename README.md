@@ -58,8 +58,8 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
    ```
 
 2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `lib/example.sh` and its own modules under `lib/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
-3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it, and `make lint` fails unless it matches the newest release in [`CHANGELOG.md`](CHANGELOG.md).
-4. Name every tmux option `@example_revamped_<name>`. `make lint` takes the slug from the directory name and fails when an option under [`lib/`](lib) is missing from [`README.md`](README.md).
+3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it and writes the notes to [`CHANGELOG.md`](CHANGELOG.md).
+4. Name every tmux option `@example_revamped_<name>`, and document every one in [`README.md`](README.md).
 5. Pick at most one default key from the allocation under Key bindings in [`FAMILY.md`](FAMILY.md), and leave every other action unbound by default.
 6. Add the repository to the member table and the `cmp` loop in [`FAMILY.md`](FAMILY.md), and to the family section of every README, in every member in the same task.
 7. Write the README with the same header as this one, and copy the section between the `family:begin` and `family:end` markers from another member, marking this plugin's row.

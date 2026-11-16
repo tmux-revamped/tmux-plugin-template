@@ -58,8 +58,8 @@
    ```
 
 2. 在根目錄加入入口腳本 `example-revamped.tmux`。TPM 會執行插件目錄中的每個 `*.tmux` 檔案。把插件邏輯放在 `lib/example.sh`，自己的模組放在 `lib/` 下。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) 就是以這種方式建立的完整狀態插件。
-3. 把 [`lib/core.sh`](lib/core.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重新命名為 `EXAMPLE_REVAMPED_VERSION`。發佈會寫入該常數；如果它和 [`CHANGELOG.md`](CHANGELOG.md) 中最新的發佈不一致，`make lint` 會失敗。
-4. 每個 tmux 選項都命名為 `@example_revamped_<name>`。`make lint` 從目錄名稱取得識別名稱，當 [`lib/`](lib) 下的某個選項沒有出現在 [`README.md`](README.md) 中時失敗。
+3. 把 [`lib/core.sh`](lib/core.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重新命名為 `EXAMPLE_REVAMPED_VERSION`。發佈會寫入該常數，並把說明寫入 [`CHANGELOG.md`](CHANGELOG.md)。
+4. 每個 tmux 選項都命名為 `@example_revamped_<name>`，並全部寫入 [`README.md`](README.md)。
 5. 從 [`FAMILY.md`](FAMILY.md) 中 Key bindings 的分配裏最多選一個預設按鍵，其他動作預設不綁定。
 6. 在同一個任務中，於每個成員裏把儲存庫加入 [`FAMILY.md`](FAMILY.md) 的成員表和 `cmp` 迴圈，以及每個 README 的家族部分。
 7. 以與本檔案相同的頁首編寫 README，從另一個成員複製 `family:begin` 和 `family:end` 標記之間的部分，並標出本插件所在的行。

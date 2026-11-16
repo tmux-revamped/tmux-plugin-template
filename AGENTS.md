@@ -34,7 +34,6 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 - `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) holds the version. Nobody edits it by hand.
 - After a green `ci` run on `main`, [`release.yml`](.github/workflows/release.yml) runs semantic-release: a `feat` or `fix` since the last tag publishes a release, [`set-version.sh`](.github/scripts/set-version.sh) stamps the constant, and the notes go into [`CHANGELOG.md`](CHANGELOG.md).
-- `make lint` fails when the constant and the newest release in the changelog differ.
 
 ## Gaps against FAMILY.md
 

@@ -58,8 +58,8 @@
    ```
 
 2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`lib/example.sh`に、独自のモジュールは`lib/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
-3. [`lib/core.sh`](lib/core.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)の最新リリースと一致しないと`make lint`が失敗します。
-4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。`make lint`はディレクトリ名からスラッグを取り、[`lib/`](lib)配下のオプションが[`README.md`](README.md)にないと失敗します。
+3. [`lib/core.sh`](lib/core.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)にノートを書きます。
+4. tmuxオプションはすべて`@example_revamped_<name>`と名付け、すべて[`README.md`](README.md)に記載します。
 5. 既定のキーは、[`FAMILY.md`](FAMILY.md)のKey bindingsにある割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
 6. [`FAMILY.md`](FAMILY.md)のメンバー表と`cmp`ループ、そしてすべてのREADMEのファミリーの節にリポジトリを、同じ作業の中ですべてのメンバーで追加します。
 7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印の間の節をほかのメンバーからコピーして、このプラグインの行に印を付けます。
