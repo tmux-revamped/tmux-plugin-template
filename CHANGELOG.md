@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.1...v1.2.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* **screens:** start new panes in the demo shell ([492dfbb](https://github.com/tmux-revamped/tmux-plugin-template/commit/492dfbbe6fcbd644082c9c82e6ffb3a23886f1e8))
+
 ## [1.2.1](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.0...v1.2.1) (2026-11-16)
 
 
