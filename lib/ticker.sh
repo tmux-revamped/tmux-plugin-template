@@ -104,8 +104,8 @@ ticker_in_main_shell() {
 
 ticker_set_option() {
   ticker_option_store "${1}" "${2}"
-  if ticker_in_main_shell && declare -F publish_add_raw >/dev/null; then
-    publish_add_raw "${1}" "${2}"
+  if ticker_in_main_shell && declare -F revamped_publish_add_raw >/dev/null; then
+    revamped_publish_add_raw "${1}" "${2}"
   else
     _ticker_tmux set-option -gq "${1}" "${2}" 2>/dev/null
   fi

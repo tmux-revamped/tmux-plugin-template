@@ -3,6 +3,13 @@ set -u
 
 store="${REVAMPED_TEST_TMUX_DIR:?}"
 [ -z "${REVAMPED_TEST_TMUX_LOG:-}" ] || printf '%s\n' "$*" >>"${REVAMPED_TEST_TMUX_LOG}"
+if [ -n "${REVAMPED_TEST_TMUX_ARGV:-}" ] && [ "${1:-}" != list-clients ]; then
+  argv_line=""
+  for argv_word in "$@"; do
+    argv_line="${argv_line}${argv_line:+|}${argv_word}"
+  done
+  printf '%s\n' "${argv_line}" >>"${REVAMPED_TEST_TMUX_ARGV}"
+fi
 [ "${REVAMPED_TEST_TMUX_FAIL:-0}" = 1 ] && exit 1
 
 key() {
@@ -51,6 +58,9 @@ show-option)
     stored=$(cat "${file}")
     printf '%s "%s"\n' "$1" "${stored}"
   fi
+  ;;
+list-clients)
+  [ -f "${store}/clients" ] && cat "${store}/clients"
   ;;
 display-message)
   file="$(key "display.${target}.$1")"

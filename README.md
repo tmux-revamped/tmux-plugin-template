@@ -87,14 +87,14 @@ cache_render load 5 read_load
 |:-------|:----------|
 | [`lib/cache.sh`](lib/cache.sh) | `cache_render`, `cache_get`, `cache_set`, `cache_age`, `cache_is_fresh`, `cache_refresh_if_stale`, `cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
-| [`lib/publish.sh`](lib/publish.sh) | `publish_add`, `publish_commit` for batched option writes, `publish_escape` to double every `#`, `publish_pad` and `publish_width` for fixed widths |
+| [`lib/publish.sh`](lib/publish.sh) | `revamped_publish_add`, `revamped_publish_commit` for batched option writes, `revamped_publish_escape` to double every `#`, `revamped_publish_pad` and `revamped_publish_width` for fixed widths |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd`, `revamped_is_apple_silicon`, each computed once per process |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
 | [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
 | [`lib/core.sh`](lib/core.sh) | the version constant and shared defaults |
 
-Any text that comes from outside the user's config, such as a process name, a network response or a file name, goes through `publish_escape` before it reaches the status line, so it cannot run as a tmux format.
+Any text that comes from outside the user's config, such as a process name, a network response or a file name, goes through `revamped_publish_escape` before it reaches the status line, so it cannot run as a tmux format.
 
 ## Configuration
 

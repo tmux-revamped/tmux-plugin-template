@@ -1,215 +1,280 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
-
-PUBLISH_LIB="${BATS_TEST_DIRNAME}/../lib/publish.sh"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  unset _TMUX_PLUGIN_PUBLISH_LOADED
-  # shellcheck source=/dev/null
-  source "${PUBLISH_LIB}"
-  PUBLISH_LOG="${TEST_TMPDIR}/publish.log"
-  export PUBLISH_LOG
-  _publish_tmux() {
-    if [[ "${1}" == "list-clients" ]]; then
-      printf '%s\n' "${PUBLISH_CLIENTS:-}"
-      return 0
-    fi
-    printf '%s\n' "$@" >"${PUBLISH_LOG}"
-  }
+  harness_setup
+  export REVAMPED_TEST_TMUX_ARGV="${BATS_TEST_TMPDIR}/argv"
 }
 
-teardown() {
-  cleanup_test_environment
+sent() {
+  cat "${REVAMPED_TEST_TMUX_ARGV}"
 }
 
-logged_words() {
-  paste -sd'|' "${PUBLISH_LOG}"
-}
-
-@test "publish - pad left-pads a value to the width" {
-  run publish_pad "9%" 4
-
-  [[ "${output}" == "  9%" ]]
-}
-
-@test "publish - pad counts a multibyte character once" {
-  run publish_pad "45°C" 5
-
-  [[ "${output}" == " 45°C" ]]
-}
-
-@test "publish - pad with zero width returns the value unchanged" {
-  run publish_pad "9%" 0
-
-  [[ "${output}" == "9%" ]]
-}
-
-@test "publish - chars counts characters, not bytes" {
-  run publish_chars "°C"
-
-  [[ "${output}" == "2" ]]
-}
-
-@test "publish - pad never cuts a wider value" {
-  run publish_pad "100%" 2
-
-  [[ "${output}" == "100%" ]]
-}
-
-@test "publish - pad treats a non-numeric width as zero" {
-  run publish_pad "9%" "wide"
-
-  [[ "${output}" == "9%" ]]
-}
-
-@test "publish - width is zero by default" {
-  run publish_width cpu_revamped percentage 4
-
-  [[ "${output}" == "0" ]]
-}
-
-@test "publish - fixed width uses the natural maximum" {
+@test "publish.sh - pad left-pads a value to the width" {
   # Arrange
-  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
+  local value=9%
 
   # Act
-  run publish_width cpu_revamped percentage 4
+  lib_call publish revamped_publish_pad "${value}" 4
 
   # Assert
-  [[ "${output}" == "4" ]]
+  [ "${output}" = "  9%" ]
 }
 
-@test "publish - a metric width overrides fixed width" {
+@test "publish.sh - pad counts a multibyte character once" {
   # Arrange
-  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
-  revamped_tmux_set "@cpu_revamped_percentage_width" "3"
+  local value=45°C
 
   # Act
-  run publish_width cpu_revamped percentage 4
+  lib_call publish revamped_publish_pad "${value}" 5
 
   # Assert
-  [[ "${output}" == "3" ]]
+  [ "${output}" = " 45°C" ]
 }
 
-@test "publish - a non-numeric metric width falls back to fixed width" {
+@test "publish.sh - pad with zero width returns the value unchanged" {
   # Arrange
-  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
-  revamped_tmux_set "@cpu_revamped_percentage_width" "wide"
+  local value=9%
 
   # Act
-  run publish_width cpu_revamped percentage 4
+  lib_call publish revamped_publish_pad "${value}" 0
 
   # Assert
-  [[ "${output}" == "4" ]]
+  [ "${output}" = "9%" ]
 }
 
-@test "publish - commit sends every option in one call" {
-  publish_add "@a" "1"
-  publish_add "@b" "2%"
+@test "publish.sh - pad never cuts a wider value" {
+  # Arrange
+  local value=100%
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_pad "${value}" 2
 
-  [[ "$(logged_words)" == "set-option|-gq|@a|1|;|set-option|-gq|@b|2%%" ]]
+  # Assert
+  [ "${output}" = "100%" ]
 }
 
-@test "publish - a pane value targets that pane" {
-  publish_add "@a" "1" "%3"
+@test "publish.sh - pad treats a non-numeric width as zero" {
+  # Arrange
+  local value=9%
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_pad "${value}" wide
 
-  [[ "$(logged_words)" == "set-option|-pq|-t|%3|@a|1" ]]
+  # Assert
+  [ "${output}" = "9%" ]
 }
 
-@test "publish - commit refreshes every attached client" {
-  export PUBLISH_CLIENTS=$'/dev/ttys001\n/dev/ttys002'
-  publish_add "@a" "1"
+@test "publish.sh - chars counts characters, not bytes" {
+  # Arrange
+  local value=°C
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_chars "${value}"
 
-  [[ "$(logged_words)" == "set-option|-gq|@a|1|;|refresh-client|-S|-t|/dev/ttys001|;|refresh-client|-S|-t|/dev/ttys002" ]]
+  # Assert
+  [ "${output}" = "2" ]
 }
 
-@test "publish - commit with nothing pending sends nothing" {
-  run publish_commit
+@test "publish.sh - chars keeps the caller's locale" {
+  # Arrange
+  export LC_ALL=en_US.UTF-8
 
-  [ "${status}" -eq 0 ]
-  [ ! -f "${PUBLISH_LOG}" ]
+  # Act
+  lib_run publish 'revamped_publish_chars ab >/dev/null; printf "%s\n" "${LC_ALL}"'
+
+  # Assert
+  [ "${output}" = "en_US.UTF-8" ]
 }
 
-@test "publish - commit empties the batch" {
-  publish_add "@a" "1"
+@test "publish.sh - chars and escape need no external command" {
+  # Arrange
+  harness_hide tr wc awk sed cut
 
-  publish_commit
+  # Act
+  lib_run publish 'revamped_publish_chars 45°C; printf " "; revamped_publish_escape "#x"'
 
-  [ "${PUBLISH_PENDING}" -eq 0 ]
+  # Assert
+  [ "${output}" = "4 ##x" ]
 }
 
-@test "publish - the tmux seam calls tmux" {
-  unset -f _publish_tmux
-  unset _TMUX_PLUGIN_PUBLISH_LOADED
-  # shellcheck source=/dev/null
-  source "${PUBLISH_LIB}"
+@test "publish.sh - width is zero by default" {
+  # Arrange
+  local natural=4
 
-  run _publish_tmux show-option -gqv "@missing"
+  # Act
+  lib_call publish revamped_publish_width cpu_revamped percentage "${natural}"
 
-  [ "${status}" -eq 0 ]
+  # Assert
+  [ "${output}" = "0" ]
 }
 
-@test "publish - a trailing semicolon is escaped" {
-  publish_add_raw "@a" "x;"
+@test "publish.sh - fixed width uses the natural maximum" {
+  # Arrange
+  tmux set-option -gq @cpu_revamped_fixed_width on
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_width cpu_revamped percentage 4
 
-  [[ "$(logged_words)" == 'set-option|-gq|@a|x\;' ]]
+  # Assert
+  [ "${output}" = "4" ]
 }
 
-@test "publish - a semicolon inside a value is kept" {
-  publish_add_raw "@a" "a;b"
+@test "publish.sh - a metric width overrides fixed width" {
+  # Arrange
+  tmux set-option -gq @cpu_revamped_fixed_width on
+  tmux set-option -gq @cpu_revamped_percentage_width 3
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_width cpu_revamped percentage 4
 
-  [[ "$(logged_words)" == "set-option|-gq|@a|a;b" ]]
+  # Assert
+  [ "${output}" = "3" ]
 }
 
-@test "publish - a displayed value doubles its percent signs" {
-  publish_add "@a" "100%#[fg=red]"
+@test "publish.sh - a non-numeric metric width falls back to fixed width" {
+  # Arrange
+  tmux set-option -gq @cpu_revamped_fixed_width on
+  tmux set-option -gq @cpu_revamped_percentage_width wide
 
-  publish_commit
+  # Act
+  lib_call publish revamped_publish_width cpu_revamped percentage 4
 
-  [[ "$(logged_words)" == "set-option|-gq|@a|100%%#[fg=red]" ]]
+  # Assert
+  [ "${output}" = "4" ]
 }
 
-@test "publish - a raw value keeps its percent signs" {
-  publish_add_raw "@a" "100%"
-
-  publish_commit
-
-  [[ "$(logged_words)" == "set-option|-gq|@a|100%" ]]
-}
-
-@test "publish - escape doubles every hash so tmux prints it literally" {
+@test "publish.sh - escape doubles every hash so tmux prints it literally" {
   # Arrange
   local value='#[fg=red]#(id)#'
 
   # Act
-  run publish_escape "${value}"
+  lib_call publish revamped_publish_escape "${value}"
 
   # Assert
-  [[ "${output}" == '##[fg=red]##(id)##' ]]
+  [ "${output}" = '##[fg=red]##(id)##' ]
 }
 
-@test "publish - chars counts in the shell without spawning a pipeline" {
+@test "publish.sh - commit sends every option in one call" {
   # Arrange
-  export TR_LOG="${TEST_TMPDIR}/tr.log"
-  tr() { printf 'tr\n' >>"${TR_LOG}"; }
-  wc() { printf 'wc\n' >>"${TR_LOG}"; }
+  local script='revamped_publish_add @a 1; revamped_publish_add @b 2%; revamped_publish_commit'
 
   # Act
-  run publish_chars "45°C"
+  lib_run publish "${script}"
 
   # Assert
-  [[ "${output}" == "4" ]] || false
-  [ ! -f "${TR_LOG}" ]
+  [ "$(sent)" = "set-option|-gq|@a|1|;|set-option|-gq|@b|2%%" ]
+}
+
+@test "publish.sh - a pane value targets that pane" {
+  # Arrange
+  local script='revamped_publish_add @a 1 %3; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-pq|-t|%3|@a|1" ]
+}
+
+@test "publish.sh - commit refreshes every attached client" {
+  # Arrange
+  printf '/dev/ttys001\n/dev/ttys002\n' >"${REVAMPED_TEST_TMUX_DIR}/clients"
+
+  # Act
+  lib_run publish 'revamped_publish_add @a 1; revamped_publish_commit'
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|1|;|refresh-client|-S|-t|/dev/ttys001|;|refresh-client|-S|-t|/dev/ttys002" ]
+}
+
+@test "publish.sh - commit with nothing pending sends nothing" {
+  # Arrange
+  local script=revamped_publish_commit
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ ! -e "${REVAMPED_TEST_TMUX_ARGV}" ]
+}
+
+@test "publish.sh - commit empties the batch" {
+  # Arrange
+  local script='revamped_publish_add @a 1; revamped_publish_commit; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|1" ]
+}
+
+@test "publish.sh - an empty value stays an argument" {
+  # Arrange
+  local script='revamped_publish_add @a ""; revamped_publish_add @b 2; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a||;|set-option|-gq|@b|2" ]
+}
+
+@test "publish.sh - a newline inside a value becomes a space" {
+  # Arrange
+  local script='revamped_publish_add_raw @a "one
+two"; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|one two" ]
+}
+
+@test "publish.sh - a trailing semicolon is escaped" {
+  # Arrange
+  local script='revamped_publish_add_raw @a "x;"; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = 'set-option|-gq|@a|x\;' ]
+}
+
+@test "publish.sh - a semicolon inside a value is kept" {
+  # Arrange
+  local script='revamped_publish_add_raw @a "a;b"; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|a;b" ]
+}
+
+@test "publish.sh - a displayed value doubles its percent signs" {
+  # Arrange
+  local script='revamped_publish_add @a "100%#[fg=red]"; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|100%%#[fg=red]" ]
+}
+
+@test "publish.sh - a raw value keeps its percent signs" {
+  # Arrange
+  local script='revamped_publish_add_raw @a 100%; revamped_publish_commit'
+
+  # Act
+  lib_run publish "${script}"
+
+  # Assert
+  [ "$(sent)" = "set-option|-gq|@a|100%" ]
 }

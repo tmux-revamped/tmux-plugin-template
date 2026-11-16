@@ -87,14 +87,14 @@ cache_render load 5 read_load
 |:-------|:----------|
 | [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
-| [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`publish_add`、`publish_commit`、すべての`#`を二重にする`publish_escape`、固定幅のための`publish_pad`と`publish_width` |
+| [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`revamped_publish_add`、`revamped_publish_commit`、すべての`#`を二重にする`revamped_publish_escape`、固定幅のための`revamped_publish_pad`と`revamped_publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
 | [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
 | [`lib/core.sh`](lib/core.sh) | バージョンの定数と共通の既定値 |
 
-プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来る文字列は、ステータスラインに届く前に`publish_escape`を通します。これでtmuxのフォーマットとして実行されることはありません。
+プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来る文字列は、ステータスラインに届く前に`revamped_publish_escape`を通します。これでtmuxのフォーマットとして実行されることはありません。
 
 ## 設定
 

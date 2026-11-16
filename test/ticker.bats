@@ -360,7 +360,7 @@ stub_ticker_tmux() {
 @test "ticker - a write in the main shell joins the publish batch" {
   # Arrange
   stub_ticker_tmux
-  publish_add_raw() { printf '%s=%s\n' "${1}" "${2}" >>"${TEST_TMPDIR}/batch"; }
+  revamped_publish_add_raw() { printf '%s=%s\n' "${1}" "${2}" >>"${TEST_TMPDIR}/batch"; }
   TICKER_MAIN_PID="${BASHPID:-main}"
   [[ -n "${BASHPID:-}" ]] || skip "this bash has no BASHPID"
 
