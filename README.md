@@ -34,7 +34,7 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 |:-----|:-----|:-----------------------|
 | Shared library | [`lib`](lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
 | Test harness | [`test`](test) | bats helpers with an in-memory tmux mock for unit tests and a private-socket tmux server for integration tests |
-| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, a 95 percent kcov floor and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
+| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, every shell and six toolsets, 100 percent bashcov coverage merged from both systems, and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
 | Make targets | [`Makefile`](Makefile) | `fmt`, `lint`, `test`, `test-all`, `test-linux`, `coverage`, `check`, `clean` |
 
 ## Requirements
@@ -42,10 +42,12 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 | Tool | Version | Used for |
 |:-----|:--------|:---------|
 | tmux | 3.2 or later | the family floor every member supports |
-| bash | 3.2 or later | the library and the tests run on macOS `/bin/bash` |
+| A POSIX shell | any | the library runs under `sh`, `dash`, `bash` 3.2 and later and `zsh` |
 | bats-core | any | `make test` |
 | shfmt, shellcheck, yamllint and actionlint | any | `make lint` |
 | Docker | any | `make test-linux` and `make coverage`, which run in an Ubuntu container |
+| Ruby 4.0.9 and Bundler | as pinned | `make coverage`, after `bundle install` |
+| dash and zsh | any | `make test-all` |
 
 ## Starting a new plugin
 
@@ -134,7 +136,7 @@ For plugins whose placeholders run often, `revamped_ticker_run` keeps one backgr
 | `make test` | the bats suite |
 | `make test-all` | the bats suite once with every installed bash and zsh as the login shell |
 | `make test-linux` | the bats suite in an Ubuntu container |
-| `make coverage` | kcov line coverage in an Ubuntu container, with a 95 percent floor |
+| `make coverage` | bashcov on this Mac and in an Ubuntu container, merged and gated at 100 percent |
 
 [`test/docs.bats`](test/docs.bats) fails when a relative link in this README points at a path that does not exist.
 

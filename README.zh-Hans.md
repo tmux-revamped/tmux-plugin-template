@@ -34,7 +34,7 @@
 |:-----|:-----|:-----------------------|
 | 共享库 | [`lib`](lib) | 保存在 tmux 选项中的状态缓存、后台渲染器、批量写入选项、tmux 选项辅助函数、平台检测，以及可选开启的错误日志 |
 | 测试框架 | [`test`](test) | bats 辅助函数，单元测试用内存中的 tmux 模拟，集成测试用独立套接字的 tmux 服务器 |
-| CI 和发布 | [`.github/workflows`](.github/workflows) | `ci.yml` 运行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的测试、下限 95% 的 kcov 和安全扫描；`release.yml` 在推送通过 `ci` 后用 semantic-release 发布；`bot-merge.yml` 合并通过检查的 Dependabot 或 Renovate 拉取请求 |
+| CI 和发布 | [`.github/workflows`](.github/workflows) | `ci.yml` 运行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的测试、每个 shell 和六套工具集、两个系统合并后 100% 的 bashcov 覆盖率和安全扫描；`release.yml` 在推送通过 `ci` 后用 semantic-release 发布；`bot-merge.yml` 合并通过检查的 Dependabot 或 Renovate 拉取请求 |
 | make 目标 | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 环境要求
@@ -42,10 +42,12 @@
 | 工具 | 版本 | 用途 |
 |:-----|:--------|:---------|
 | tmux | 3.2 或更高 | 所有成员都支持的系列下限 |
-| bash | 3.2 或更高 | 库和测试可在 macOS 的 `/bin/bash` 上运行 |
+| POSIX shell | 任意 | 库可在 `sh`、`dash`、`bash` 3.2 及更高版本和 `zsh` 下运行 |
 | bats-core | 任意 | `make test` |
 | shfmt、shellcheck、yamllint 和 actionlint | 任意 | `make lint` |
 | Docker | 任意 | 在 Ubuntu 容器中运行的 `make test-linux` 和 `make coverage` |
+| Ruby 4.0.9 和 Bundler | 固定版本 | 运行 `bundle install` 之后的 `make coverage` |
+| dash 和 zsh | 任意 | `make test-all` |
 
 ## 开始一个新插件
 
@@ -134,7 +136,7 @@ graph LR
 | `make test` | bats 测试套件 |
 | `make test-all` | 依次以每个已安装的 bash 和 zsh 作为登录 shell 运行 bats 测试套件 |
 | `make test-linux` | 在 Ubuntu 容器中运行 bats 测试套件 |
-| `make coverage` | 在 Ubuntu 容器中测量 kcov 行覆盖率，下限 95% |
+| `make coverage` | 在本机 Mac 和 Ubuntu 容器中运行 bashcov，合并后要求 100% |
 
 当本 README 中的相对链接指向不存在的路径时，[`test/docs.bats`](test/docs.bats) 会失败。
 

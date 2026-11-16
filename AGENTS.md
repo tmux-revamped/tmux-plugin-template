@@ -39,15 +39,11 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 As of 2026-11-15:
 
-- Every script is bash, under `#!/usr/bin/env bash`, not POSIX `sh`, so it is untested under `dash`, `zsh` and BusyBox `sh`.
-- The code lives under the source tree's library folder; there is no `bin/template-revamped`, `lib/state.sh` or `lib/core.sh`.
+- There is no `bin/template-revamped`.
 - No `template-revamped` command with `help`, `version` and `doctor` in the family's form, no man page, no completions and no `manifest.json`.
 - No `make new-member NAME=<name>` scaffold.
 - No gum interface: no `lib/ui.sh`, `lib/table.awk`, themes or `test/bin/gum`.
 - No `screens/`: no VHS recording of each feature, no on-screen caption of the keys each recording presses, and no recordings in the README.
 - The README sections are not the family's order of Quick start, Usage, topic sections, Portability, Development and License.
-- Coverage is kcov with a 95 percent floor on Linux, not bashcov at 100 percent merged from macOS and Linux.
-- CI tests GNU, BSD and uutils tools in `ci.yml`, but not the six toolsets through `.github/scripts/toolset.sh`, and no shell matrix under `sh`, `dash`, `bash` and `zsh`.
-- No golden transcripts, `call.sh`, `run-matrix.sh` or `linux-container.sh`.
-- The Makefile has no `screens` or `install` target, `make lint` runs ShellCheck at warning level instead of `-o all` and no `mandoc -T lint`, and `make coverage` is kcov in a container.
-- The shared library's globals, such as `CACHE_PREFIX` and `TICKER_SEP`, carry no member prefix.
+- No golden transcripts.
+- The Makefile has no `screens` or `install` target, and `make lint` runs no `mandoc -T lint`, since there is no command, man page or screen yet.

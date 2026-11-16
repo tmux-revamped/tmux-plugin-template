@@ -34,7 +34,7 @@
 |:-----|:-----|:-----------------------|
 | 共有ライブラリ | [`lib`](lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
 | テストハーネス | [`test`](test) | 単体テスト用のメモリー上のtmuxモックと、結合テスト用の専用ソケットのtmuxサーバーを備えたbatsの補助関数 |
-| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、下限95パーセントのkcov、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
+| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、すべてのシェルと6つのツールセット、両方のシステムを合わせた100パーセントのbashcovカバレッジ、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
 | makeのターゲット | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 動作要件
@@ -42,10 +42,12 @@
 | ツール | バージョン | 用途 |
 |:-----|:--------|:---------|
 | tmux | 3.2以降 | すべてのメンバーが対応するファミリーの下限 |
-| bash | 3.2以降 | ライブラリとテストはmacOSの`/bin/bash`で動きます |
+| POSIXシェル | 任意のバージョン | ライブラリは`sh`、`dash`、`bash` 3.2以降、`zsh`で動きます |
 | bats-core | 任意のバージョン | `make test` |
 | shfmt、shellcheck、yamllint、actionlint | 任意のバージョン | `make lint` |
 | Docker | 任意のバージョン | Ubuntuのコンテナで動く`make test-linux`と`make coverage` |
+| Ruby 4.0.9とBundler | 固定のバージョン | `bundle install`のあとの`make coverage` |
+| dashとzsh | 任意のバージョン | `make test-all` |
 
 ## 新しいプラグインの始め方
 
@@ -134,7 +136,7 @@ graph LR
 | `make test` | batsのテストスイート |
 | `make test-all` | インストールされているbashとzshをそれぞれログインシェルにしてbatsのテストスイートを実行 |
 | `make test-linux` | Ubuntuのコンテナでbatsのテストスイートを実行 |
-| `make coverage` | Ubuntuのコンテナでkcovによる行カバレッジを測り、下限は95パーセント |
+| `make coverage` | このMacとUbuntuのコンテナでbashcovを実行し、結果を合わせて100パーセントを求めます |
 
 [`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指していると失敗します。
 

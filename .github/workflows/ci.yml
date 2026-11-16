@@ -40,10 +40,10 @@ jobs:
           AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
-          legs='[{"os":"macos-26","profile":"system"},{"os":"macos-26","profile":"gnu"},{"os":"macos-26","profile":"uutils"},{"os":"macos-26-intel","profile":"system"},{"os":"macos-26-intel","profile":"gnu"},{"os":"macos-26-intel","profile":"uutils"}]'
+          legs='[{"os":"macos-26","shell":"/bin/sh","toolset":"native","coverage":false},{"os":"macos-26","shell":"/bin/bash","toolset":"native","coverage":false},{"os":"macos-26","shell":"/bin/zsh","toolset":"native","coverage":false},{"os":"macos-26","shell":"/opt/homebrew/bin/bash","toolset":"homebrew","coverage":true},{"os":"macos-26","shell":"/opt/homebrew/bin/zsh","toolset":"homebrew","coverage":false},{"os":"macos-26","shell":"/bin/sh","toolset":"uutils","coverage":false},{"os":"macos-26-intel","shell":"/bin/sh","toolset":"native","coverage":false}]'
           case "${EVENT}:${AUTHOR}" in
           'pull_request:dependabot[bot]' | 'pull_request:renovate[bot]')
-            legs='[{"os":"macos-26","profile":"system"}]'
+            legs='[{"os":"macos-26","shell":"/opt/homebrew/bin/bash","toolset":"homebrew","coverage":true}]'
             ;;
           *) ;;
           esac
@@ -98,74 +98,88 @@ jobs:
         run: make lint
 
   test-linux:
-    name: test (linux, ${{ matrix.host }}, ${{ matrix.tools }})
+    name: test (${{ matrix.os }}, ${{ matrix.shell }}, ${{ matrix.toolset }})
     needs: [plan]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-26.04, ubuntu-26.04-arm]
-        tools: [uutils, gnu]
-    runs-on: ${{ matrix.host }}
-    timeout-minutes: 30
-    container:
-      image: ubuntu:26.04
-    env:
-      TOOLS: ${{ matrix.tools }}
+        include:
+          - {os: ubuntu-26.04, shell: dash, toolset: native, coverage: false}
+          - {os: ubuntu-26.04, shell: zsh, toolset: native, coverage: false}
+          - {os: ubuntu-26.04, shell: bash, toolset: native, coverage: true}
+          - {os: ubuntu-26.04, shell: dash, toolset: gnu, coverage: false}
+          - {os: ubuntu-26.04, shell: dash, toolset: uutils, coverage: false}
+          - {os: ubuntu-26.04, shell: dash, toolset: busybox, coverage: false}
+          - {os: ubuntu-26.04-arm, shell: dash, toolset: native, coverage: false}
     steps:
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: audit
-      - name: Bootstrap the container
-        run: |
-          set -eu
-          apt-get update -qq
-          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git make bats tmux zsh python3 ca-certificates
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-      - name: Select the core tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${TOOLS}" == "gnu" ]]; then
-            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-remove-essential \
-              coreutils-from-gnu coreutils-from-uutils-
-          else
-            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-remove-essential \
-              coreutils-from-uutils coreutils-from-gnu-
-          fi
-          echo "SHELL=$(command -v zsh)" >> "${GITHUB_ENV}"
-      - name: Verify the profile
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash --version | head -1
-          zsh --version
-          tmux -V
-          expected="GNU coreutils"
-          [[ "${TOOLS}" == "uutils" ]] && expected="uutils coreutils"
-          cat --version | head -1 | grep -qF "${expected}"
-          [[ "${SHELL}" == */zsh ]]
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: Run the suites
+      - name: Install shells and tools
+        env:
+          TOOLSET: ${{ matrix.toolset }}
+        run: |
+          set -euo pipefail
+          extra=()
+          case "${TOOLSET}" in
+          gnu) extra=(gnu-coreutils gawk) ;;
+          uutils) extra=(rust-coreutils) ;;
+          busybox) extra=(busybox) ;;
+          *) ;;
+          esac
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats dash zsh tmux "${extra[@]}"
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199  # v1.338.0
+        if: matrix.coverage
+        with:
+          bundler-cache: true
+      - name: Build the ${{ matrix.toolset }} toolset
+        env:
+          TOOLSET: ${{ matrix.toolset }}
+        run: sh .github/scripts/toolset.sh "${TOOLSET}" "${RUNNER_TEMP}/toolset" > "${RUNNER_TEMP}/toolset-path"
+      - name: Run the suites under ${{ matrix.shell }}
+        if: ${{ !matrix.coverage }}
+        env:
+          REVAMPED_TEST_SHELLS: ${{ matrix.shell }}
         run: |
           set -eu
           marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
           echo "::stop-commands::${marker}"
-          make test
+          dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
+          PATH="${dirs:+${dirs}:}${PATH}" sh test/run-matrix.sh
           echo "::${marker}::"
+      - name: Run the suites under bashcov
+        if: matrix.coverage
+        run: |
+          set -eu
+          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          echo "::stop-commands::${marker}"
+          ruby_dir="$(dirname "$(command -v ruby)")"
+          dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
+          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh scripts/coverage.sh 0
+          echo "::${marker}::"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: matrix.coverage
+        with:
+          name: coverage-Linux
+          path: coverage/.resultset.json
+          include-hidden-files: true
+          retention-days: 1
 
   test-macos:
-    name: test (${{ matrix.os }}, ${{ matrix.profile }})
+    name: test (${{ matrix.os }}, ${{ matrix.shell }}, ${{ matrix.toolset }})
     needs: [plan, lint, test-linux]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.macos) }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    env:
-      PROFILE: ${{ matrix.profile }}
     steps:
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
@@ -173,78 +187,56 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          packages=(bats-core tmux)
-          case "${PROFILE}" in
-            gnu) packages+=(bash zsh coreutils findutils diffutils gnu-sed grep gawk) ;;
-            uutils) packages+=(bash zsh uutils-coreutils uutils-findutils uutils-diffutils gnu-sed grep gawk) ;;
-            *) ;;
-          esac
-          brew install "${packages[@]}"
-      - name: Select the shells and core tools
-        run: |
-          set -euo pipefail
-          prefix="$(brew --prefix)"
-          text_tools=("$(brew --prefix gawk)/libexec/gnubin" "$(brew --prefix grep)/libexec/gnubin"
-            "$(brew --prefix gnu-sed)/libexec/gnubin")
-          case "${PROFILE}" in
-            system)
-              paths=(/usr/sbin /sbin /usr/bin /bin)
-              login_shell=/bin/zsh
-              ;;
-            gnu)
-              paths=("${prefix}/bin" "${text_tools[@]}" "$(brew --prefix diffutils)/bin"
-                "$(brew --prefix findutils)/libexec/gnubin" "$(brew --prefix coreutils)/libexec/gnubin")
-              login_shell="${prefix}/bin/zsh"
-              ;;
-            *)
-              paths=("${prefix}/bin" "${text_tools[@]}" "$(brew --prefix uutils-diffutils)/libexec/uubin"
-                "$(brew --prefix uutils-findutils)/libexec/uubin" "$(brew --prefix uutils-coreutils)/libexec/uubin")
-              login_shell="${prefix}/bin/zsh"
-              ;;
-          esac
-          for dir in "${paths[@]}"; do
-            echo "${dir}" >> "${GITHUB_PATH}"
-          done
-          echo "SHELL=${login_shell}" >> "${GITHUB_ENV}"
-      - name: Verify the profile
-        run: |
-          set -euo pipefail
-          command -v bash
-          bash --version | head -1
-          "${SHELL}" --version
-          tmux -V
-          case "${PROFILE}" in
-            system)
-              [[ "$(command -v bash)" == /bin/bash && "${SHELL}" == /bin/zsh ]]
-              if cat --version >/dev/null 2>&1; then exit 1; fi
-              ;;
-            gnu)
-              [[ "$(command -v bash)" == "$(brew --prefix)/bin/bash" && "${SHELL}" == "$(brew --prefix)/bin/zsh" ]]
-              cat --version | head -1 | grep -qF "GNU coreutils"
-              sed --version | head -1 | grep -qF "GNU sed"
-              ;;
-            *)
-              [[ "$(command -v bash)" == "$(brew --prefix)/bin/bash" && "${SHELL}" == "$(brew --prefix)/bin/zsh" ]]
-              cat --version | head -1 | grep -qF "uutils coreutils"
-              sed --version | head -1 | grep -qF "GNU sed"
-              ;;
-          esac
-      - name: Run the suites
+      - name: Install shells and tools
+        run: brew install --formula bats-core bash dash-shell zsh tmux
+      - name: Install the Homebrew toolset
+        if: matrix.toolset == 'homebrew'
+        run: brew install --formula coreutils findutils gnu-sed gawk grep diffutils
+      - name: Install the uutils toolset
+        if: matrix.toolset == 'uutils'
+        run: brew install --formula uutils-coreutils uutils-diffutils uutils-findutils
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199  # v1.338.0
+        if: matrix.coverage
+        with:
+          bundler-cache: true
+      - name: Build the ${{ matrix.toolset }} toolset
+        env:
+          TOOLSET: ${{ matrix.toolset }}
+        run: sh .github/scripts/toolset.sh "${TOOLSET}" "${RUNNER_TEMP}/toolset" > "${RUNNER_TEMP}/toolset-path"
+      - name: Run the suites under ${{ matrix.shell }}
+        if: ${{ !matrix.coverage }}
+        env:
+          REVAMPED_TEST_SHELLS: ${{ matrix.shell }}
         run: |
           set -eu
           marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
           echo "::stop-commands::${marker}"
-          make test
+          dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
+          PATH="${dirs:+${dirs}:}${PATH}" sh test/run-matrix.sh
           echo "::${marker}::"
+      - name: Run the suites under bashcov
+        if: matrix.coverage
+        run: |
+          set -eu
+          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          echo "::stop-commands::${marker}"
+          ruby_dir="$(dirname "$(command -v ruby)")"
+          dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
+          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh scripts/coverage.sh 0
+          echo "::${marker}::"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: matrix.coverage
+        with:
+          name: coverage-macOS
+          path: coverage/.resultset.json
+          include-hidden-files: true
+          retention-days: 1
 
-  coverage:
-    name: coverage
-    if: github.event_name != 'schedule'
+  coverage-gate:
+    name: coverage gate
+    needs: [test-linux, test-macos]
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
@@ -252,18 +244,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: Install kcov and the suites' tools
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats tmux python3 kcov
-      - name: Measure line coverage and enforce the floor
-        run: |
-          set -eu
-          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
-          echo "::stop-commands::${marker}"
-          make coverage-kcov
-          echo "::${marker}::"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: coverage-*
+          path: results
+      - name: Merge both platforms and enforce 100% line coverage
+        run: >-
+          python3 scripts/coverage-gate.py '/lib/[a-z]+\.sh\Z' 100
+          results/coverage-Linux/.resultset.json results/coverage-macOS/.resultset.json
 
   security:
     name: security
