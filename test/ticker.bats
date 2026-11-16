@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 # shellcheck disable=SC1090,SC2034
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
-TICKER_LIB="${BATS_TEST_DIRNAME}/../../../src/lib/utils/ticker.sh"
+TICKER_LIB="${BATS_TEST_DIRNAME}/../lib/ticker.sh"
 
 setup() {
   setup_test_environment

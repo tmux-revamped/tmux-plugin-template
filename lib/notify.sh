@@ -7,9 +7,9 @@ _NOTIFY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${_NOTIFY_DIR}/platform.sh"
 # shellcheck source=/dev/null
-source "${_NOTIFY_DIR}/has-command.sh"
+source "${_NOTIFY_DIR}/command.sh"
 # shellcheck source=/dev/null
-source "${_NOTIFY_DIR}/../tmux/tmux-ops.sh"
+source "${_NOTIFY_DIR}/tmux.sh"
 
 notify_backend() {
   if is_macos && has_command osascript; then

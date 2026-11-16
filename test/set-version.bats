@@ -3,9 +3,9 @@
 setup() {
   SOURCE="$(cd "${BATS_TEST_DIRNAME:-.}/.." && pwd)/.github/scripts/set-version.sh"
   WORK="$(mktemp -d "${BATS_TMPDIR:-/tmp}/set-version.XXXXXX")"
-  mkdir -p "${WORK}/.github/scripts" "${WORK}/src/lib/utils"
+  mkdir -p "${WORK}/.github/scripts" "${WORK}/lib"
   cp -f "${SOURCE}" "${WORK}/.github/scripts/set-version.sh"
-  CONSTANTS="${WORK}/src/lib/utils/constants.sh"
+  CONSTANTS="${WORK}/lib/core.sh"
 }
 
 teardown() {

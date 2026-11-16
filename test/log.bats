@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
 setup() {
   setup_test_environment
@@ -8,7 +8,7 @@ setup() {
   export PLUGIN_LOG_DIR="${TEST_TMPDIR}/logs"
   export PLUGIN_LOG_FILE="${PLUGIN_LOG_DIR}/test.log"
   export PLUGIN_LOG_OPTION="@test_rev_enable_logging"
-  source "${BATS_TEST_DIRNAME}/../../../src/lib/utils/error-logger.sh"
+  source "${BATS_TEST_DIRNAME}/../lib/log.sh"
 }
 
 teardown() {

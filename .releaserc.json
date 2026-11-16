@@ -19,7 +19,7 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "src/lib/utils/constants.sh"],
+        "assets": ["CHANGELOG.md", "lib/core.sh"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

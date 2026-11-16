@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux')
-BASH_SOURCES = $(shell git ls-files -- 'src/*.sh' '*.tmux' '*.bash' 'test/*.sh')
+BASH_SOURCES = $(shell git ls-files -- 'lib/*.sh' '*.tmux' '*.bash' 'test/*.sh')
 POSIX_SCRIPTS = $(shell git ls-files -- '.github/scripts/*.sh')
 LINUX_IMAGE := ubuntu:26.04
 LINUX_PACKAGES := bats git make tmux zsh kcov python3 ca-certificates
@@ -61,7 +61,7 @@ coverage:
 
 coverage-kcov:
 	rm -rf coverage
-	kcov "--include-path=$(CURDIR)/src" coverage bats --recursive test/
+	kcov "--include-path=$(CURDIR)/lib" coverage bats --recursive test/
 	python3 -c "import glob, json, sys; \
 files = sorted(glob.glob('coverage/kcov-merged/coverage.json') or glob.glob('coverage/*/coverage.json')); \
 percent = float(json.load(open(files[-1]))['percent_covered']) if files else 0.0; \

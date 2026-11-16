@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
 setup() {
   setup_test_environment
@@ -9,7 +9,7 @@ setup() {
   mkdir -p "${NOTIFY_BIN}"
   export NOTIFY_CALLS
   NOTIFY_ORIGINAL_PATH="${PATH}"
-  source "${BATS_TEST_DIRNAME}/../../../src/lib/utils/notify.sh"
+  source "${BATS_TEST_DIRNAME}/../lib/notify.sh"
 }
 
 teardown() {

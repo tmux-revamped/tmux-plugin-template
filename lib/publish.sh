@@ -5,7 +5,7 @@ _TMUX_PLUGIN_PUBLISH_LOADED=1
 
 _PUBLISH_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
-source "${_PUBLISH_SCRIPT_DIR}/../tmux/tmux-ops.sh"
+source "${_PUBLISH_SCRIPT_DIR}/tmux.sh"
 
 PUBLISH_BATCH=()
 PUBLISH_PENDING=0

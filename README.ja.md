@@ -32,7 +32,7 @@
 
 | 部分 | パス | 新しいプラグインが得るもの |
 |:-----|:-----|:-----------------------|
-| 共有ライブラリ | [`src/lib`](src/lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
+| 共有ライブラリ | [`lib`](lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
 | テストハーネス | [`test`](test) | 単体テスト用のメモリー上のtmuxモックと、結合テスト用の専用ソケットのtmuxサーバーを備えたbatsの補助関数 |
 | CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、下限95パーセントのkcov、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
 | makeのターゲット | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
@@ -57,9 +57,9 @@
    git remote set-url origin https://github.com/tmux-revamped/tmux-example-revamped.git
    ```
 
-2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`src/example.sh`に、独自のモジュールは`src/lib/example/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
-3. [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)の最新リリースと一致しないと`make lint`が失敗します。
-4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。`make lint`はディレクトリ名からスラッグを取り、[`src/`](src)配下のオプションが[`README.md`](README.md)にないと失敗します。
+2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`lib/example.sh`に、独自のモジュールは`lib/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
+3. [`lib/core.sh`](lib/core.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)の最新リリースと一致しないと`make lint`が失敗します。
+4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。`make lint`はディレクトリ名からスラッグを取り、[`lib/`](lib)配下のオプションが[`README.md`](README.md)にないと失敗します。
 5. 既定のキーは、[`FAMILY.md`](FAMILY.md)のKey bindingsにある割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
 6. [`FAMILY.md`](FAMILY.md)のメンバー表と`cmp`ループ、そしてすべてのREADMEのファミリーの節にリポジトリを、同じ作業の中ですべてのメンバーで追加します。
 7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印の間の節をほかのメンバーからコピーして、このプラグインの行に印を付けます。
@@ -76,7 +76,7 @@
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/src/lib/utils/cache.sh"
+source "${PLUGIN_DIR}/lib/cache.sh"
 
 read_load() { uptime; }
 
@@ -85,14 +85,14 @@ cache_render load 5 read_load
 
 | モジュール | 関数 |
 |:-------|:----------|
-| [`src/lib/utils/cache.sh`](src/lib/utils/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
-| [`src/lib/utils/ticker.sh`](src/lib/utils/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
-| [`src/lib/utils/publish.sh`](src/lib/utils/publish.sh) | まとめて書き込むための`publish_add`、`publish_commit`、すべての`#`を二重にする`publish_escape`、固定幅のための`publish_pad`と`publish_width` |
-| [`src/lib/tmux/tmux-ops.sh`](src/lib/tmux/tmux-ops.sh) | `get_tmux_option`、`set_tmux_option`、`unset_tmux_option`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
-| [`src/lib/utils/platform.sh`](src/lib/utils/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
-| [`src/lib/utils/has-command.sh`](src/lib/utils/has-command.sh) | `has_command` |
-| [`src/lib/utils/error-logger.sh`](src/lib/utils/error-logger.sh) | `log_error` |
-| [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | バージョンの定数と共通の既定値 |
+| [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
+| [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
+| [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`publish_add`、`publish_commit`、すべての`#`を二重にする`publish_escape`、固定幅のための`publish_pad`と`publish_width` |
+| [`lib/tmux.sh`](lib/tmux.sh) | `get_tmux_option`、`set_tmux_option`、`unset_tmux_option`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
+| [`lib/platform.sh`](lib/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
+| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/core.sh`](lib/core.sh) | バージョンの定数と共通の既定値 |
 
 プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来る文字列は、ステータスラインに届く前に`publish_escape`を通します。これでtmuxのフォーマットとして実行されることはありません。
 

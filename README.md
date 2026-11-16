@@ -32,7 +32,7 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 
 | Part | Path | What a new plugin gets |
 |:-----|:-----|:-----------------------|
-| Shared library | [`src/lib`](src/lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
+| Shared library | [`lib`](lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
 | Test harness | [`test`](test) | bats helpers with an in-memory tmux mock for unit tests and a private-socket tmux server for integration tests |
 | CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, a 95 percent kcov floor and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
 | Make targets | [`Makefile`](Makefile) | `fmt`, `lint`, `test`, `test-all`, `test-linux`, `coverage`, `check`, `clean` |
@@ -57,9 +57,9 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
    git remote set-url origin https://github.com/tmux-revamped/tmux-example-revamped.git
    ```
 
-2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `src/example.sh` and its own modules under `src/lib/example/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
-3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it, and `make lint` fails unless it matches the newest release in [`CHANGELOG.md`](CHANGELOG.md).
-4. Name every tmux option `@example_revamped_<name>`. `make lint` takes the slug from the directory name and fails when an option under [`src/`](src) is missing from [`README.md`](README.md).
+2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `lib/example.sh` and its own modules under `lib/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
+3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it, and `make lint` fails unless it matches the newest release in [`CHANGELOG.md`](CHANGELOG.md).
+4. Name every tmux option `@example_revamped_<name>`. `make lint` takes the slug from the directory name and fails when an option under [`lib/`](lib) is missing from [`README.md`](README.md).
 5. Pick at most one default key from the allocation under Key bindings in [`FAMILY.md`](FAMILY.md), and leave every other action unbound by default.
 6. Add the repository to the member table and the `cmp` loop in [`FAMILY.md`](FAMILY.md), and to the family section of every README, in every member in the same task.
 7. Write the README with the same header as this one, and copy the section between the `family:begin` and `family:end` markers from another member, marking this plugin's row.
@@ -76,7 +76,7 @@ A status plugin sources the cache and renders from it. The status line gets the 
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/src/lib/utils/cache.sh"
+source "${PLUGIN_DIR}/lib/cache.sh"
 
 read_load() { uptime; }
 
@@ -85,14 +85,14 @@ cache_render load 5 read_load
 
 | Module | Functions |
 |:-------|:----------|
-| [`src/lib/utils/cache.sh`](src/lib/utils/cache.sh) | `cache_render`, `cache_get`, `cache_set`, `cache_age`, `cache_is_fresh`, `cache_refresh_if_stale`, `cache_set_if_stale` |
-| [`src/lib/utils/ticker.sh`](src/lib/utils/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
-| [`src/lib/utils/publish.sh`](src/lib/utils/publish.sh) | `publish_add`, `publish_commit` for batched option writes, `publish_escape` to double every `#`, `publish_pad` and `publish_width` for fixed widths |
-| [`src/lib/tmux/tmux-ops.sh`](src/lib/tmux/tmux-ops.sh) | `get_tmux_option`, `set_tmux_option`, `unset_tmux_option`, window and pane option helpers, pane and window size getters |
-| [`src/lib/utils/platform.sh`](src/lib/utils/platform.sh) | `platform_os`, `platform_arch`, `is_macos`, `is_linux`, `is_bsd`, `is_apple_silicon`, each computed once per process |
-| [`src/lib/utils/has-command.sh`](src/lib/utils/has-command.sh) | `has_command` |
-| [`src/lib/utils/error-logger.sh`](src/lib/utils/error-logger.sh) | `log_error` |
-| [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | the version constant and shared defaults |
+| [`lib/cache.sh`](lib/cache.sh) | `cache_render`, `cache_get`, `cache_set`, `cache_age`, `cache_is_fresh`, `cache_refresh_if_stale`, `cache_set_if_stale` |
+| [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
+| [`lib/publish.sh`](lib/publish.sh) | `publish_add`, `publish_commit` for batched option writes, `publish_escape` to double every `#`, `publish_pad` and `publish_width` for fixed widths |
+| [`lib/tmux.sh`](lib/tmux.sh) | `get_tmux_option`, `set_tmux_option`, `unset_tmux_option`, window and pane option helpers, pane and window size getters |
+| [`lib/platform.sh`](lib/platform.sh) | `platform_os`, `platform_arch`, `is_macos`, `is_linux`, `is_bsd`, `is_apple_silicon`, each computed once per process |
+| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/core.sh`](lib/core.sh) | the version constant and shared defaults |
 
 Any text that comes from outside the user's config, such as a process name, a network response or a file name, goes through `publish_escape` before it reaches the status line, so it cannot run as a tmux format.
 

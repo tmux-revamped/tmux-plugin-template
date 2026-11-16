@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
 setup() {
   setup_test_environment
   export CACHE_PREFIX="test_rev"
   export CACHE_SYNC=1
-  source "${BATS_TEST_DIRNAME}/../../../src/lib/utils/cache.sh"
+  source "${BATS_TEST_DIRNAME}/../lib/cache.sh"
 }
 
 teardown() {

@@ -8,11 +8,10 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 | Path | Holds |
 |:-----|:------|
-| [`src/lib/utils/`](src/lib/utils), [`src/lib/tmux/`](src/lib/tmux) | The shared library every member carries. Every file there except `constants.sh` is identical in every member |
-| [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | The template's constants, including its version |
-| [`test/lib/`](test/lib) | The shared library's suite, identical in every member |
+| [`lib/`](lib) | The shared library every member carries. Every file there except `core.sh` is identical in every member |
+| [`lib/core.sh`](lib/core.sh) | The template's version and constants |
+| [`test/`](test) | The shared library's suites, identical in every member, and the CI scripts' suites, such as [`test/recover.bats`](test/recover.bats) |
 | [`test/docs.bats`](test/docs.bats) | The README link check |
-| [`test/`](test), the other root suites | The CI scripts' suites, such as [`test/recover.bats`](test/recover.bats) |
 | [`.github/scripts/`](.github/scripts) | The scripts only CI and the release run: version stamping, CI state and recovery |
 
 ## Names
@@ -33,7 +32,7 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 ## Release
 
-- `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) holds the version. Nobody edits it by hand.
+- `TMUX_PLUGIN_TEMPLATE_VERSION` in [`lib/core.sh`](lib/core.sh) holds the version. Nobody edits it by hand.
 - After a green `ci` run on `main`, [`release.yml`](.github/workflows/release.yml) runs semantic-release: a `feat` or `fix` since the last tag publishes a release, [`set-version.sh`](.github/scripts/set-version.sh) stamps the constant, and the notes go into [`CHANGELOG.md`](CHANGELOG.md).
 - `make lint` fails when the constant and the newest release in the changelog differ.
 

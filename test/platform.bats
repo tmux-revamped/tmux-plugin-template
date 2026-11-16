@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
 setup() {
   setup_test_environment
-  source "${BATS_TEST_DIRNAME}/../../../src/lib/utils/platform.sh"
+  source "${BATS_TEST_DIRNAME}/../lib/platform.sh"
 }
 
 teardown() {

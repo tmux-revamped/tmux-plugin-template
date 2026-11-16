@@ -32,7 +32,7 @@
 
 | 部分 | 路径 | 新插件得到什么 |
 |:-----|:-----|:-----------------------|
-| 共享库 | [`src/lib`](src/lib) | 保存在 tmux 选项中的状态缓存、后台渲染器、批量写入选项、tmux 选项辅助函数、平台检测，以及可选开启的错误日志 |
+| 共享库 | [`lib`](lib) | 保存在 tmux 选项中的状态缓存、后台渲染器、批量写入选项、tmux 选项辅助函数、平台检测，以及可选开启的错误日志 |
 | 测试框架 | [`test`](test) | bats 辅助函数，单元测试用内存中的 tmux 模拟，集成测试用独立套接字的 tmux 服务器 |
 | CI 和发布 | [`.github/workflows`](.github/workflows) | `ci.yml` 运行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的测试、下限 95% 的 kcov 和安全扫描；`release.yml` 在推送通过 `ci` 后用 semantic-release 发布；`bot-merge.yml` 合并通过检查的 Dependabot 或 Renovate 拉取请求 |
 | make 目标 | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
@@ -57,9 +57,9 @@
    git remote set-url origin https://github.com/tmux-revamped/tmux-example-revamped.git
    ```
 
-2. 在根目录添加入口脚本 `example-revamped.tmux`。TPM 会运行插件目录中的每个 `*.tmux` 文件。把插件逻辑放在 `src/example.sh`，自己的模块放在 `src/lib/example/` 下。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) 就是以这种方式构建的完整状态插件。
-3. 把 [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重命名为 `EXAMPLE_REVAMPED_VERSION`。发布会写入该常量；如果它和 [`CHANGELOG.md`](CHANGELOG.md) 中最新的发布不一致，`make lint` 会失败。
-4. 每个 tmux 选项都命名为 `@example_revamped_<name>`。`make lint` 从目录名取得标识，当 [`src/`](src) 下的某个选项没有出现在 [`README.md`](README.md) 中时失败。
+2. 在根目录添加入口脚本 `example-revamped.tmux`。TPM 会运行插件目录中的每个 `*.tmux` 文件。把插件逻辑放在 `lib/example.sh`，自己的模块放在 `lib/` 下。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) 就是以这种方式构建的完整状态插件。
+3. 把 [`lib/core.sh`](lib/core.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重命名为 `EXAMPLE_REVAMPED_VERSION`。发布会写入该常量；如果它和 [`CHANGELOG.md`](CHANGELOG.md) 中最新的发布不一致，`make lint` 会失败。
+4. 每个 tmux 选项都命名为 `@example_revamped_<name>`。`make lint` 从目录名取得标识，当 [`lib/`](lib) 下的某个选项没有出现在 [`README.md`](README.md) 中时失败。
 5. 从 [`FAMILY.md`](FAMILY.md) 中 Key bindings 的分配里最多选一个默认按键，其他动作默认不绑定。
 6. 在同一个任务中，于每个成员里把仓库加入 [`FAMILY.md`](FAMILY.md) 的成员表和 `cmp` 循环，以及每个 README 的家族部分。
 7. 使用与本文件相同的页眉编写 README，从另一个成员复制 `family:begin` 和 `family:end` 标记之间的部分，并标出本插件所在的行。
@@ -76,7 +76,7 @@
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/src/lib/utils/cache.sh"
+source "${PLUGIN_DIR}/lib/cache.sh"
 
 read_load() { uptime; }
 
@@ -85,14 +85,14 @@ cache_render load 5 read_load
 
 | 模块 | 函数 |
 |:-------|:----------|
-| [`src/lib/utils/cache.sh`](src/lib/utils/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
-| [`src/lib/utils/ticker.sh`](src/lib/utils/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用于每个服务器一个后台渲染器 |
-| [`src/lib/utils/publish.sh`](src/lib/utils/publish.sh) | 用于批量写入选项的 `publish_add`、`publish_commit`，把每个 `#` 加倍的 `publish_escape`，用于固定宽度的 `publish_pad` 和 `publish_width` |
-| [`src/lib/tmux/tmux-ops.sh`](src/lib/tmux/tmux-ops.sh) | `get_tmux_option`、`set_tmux_option`、`unset_tmux_option`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
-| [`src/lib/utils/platform.sh`](src/lib/utils/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`，每个进程只计算一次 |
-| [`src/lib/utils/has-command.sh`](src/lib/utils/has-command.sh) | `has_command` |
-| [`src/lib/utils/error-logger.sh`](src/lib/utils/error-logger.sh) | `log_error` |
-| [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | 版本常量和共享默认值 |
+| [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
+| [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用于每个服务器一个后台渲染器 |
+| [`lib/publish.sh`](lib/publish.sh) | 用于批量写入选项的 `publish_add`、`publish_commit`，把每个 `#` 加倍的 `publish_escape`，用于固定宽度的 `publish_pad` 和 `publish_width` |
+| [`lib/tmux.sh`](lib/tmux.sh) | `get_tmux_option`、`set_tmux_option`、`unset_tmux_option`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
+| [`lib/platform.sh`](lib/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`，每个进程只计算一次 |
+| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/core.sh`](lib/core.sh) | 版本常量和共享默认值 |
 
 来自用户配置之外的文本，例如进程名、网络响应或文件名，在到达状态栏之前都要经过 `publish_escape`，这样它就无法作为 tmux 格式执行。
 

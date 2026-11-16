@@ -380,7 +380,7 @@ A person's own remap is a different question from the defaults. When a remap lan
 
 A member whose state can need attention, such as a battery at critical charge or a disk crossing its high threshold, may send a desktop notification. Every one follows the same rules:
 
-- It goes through [`src/lib/utils/notify.sh`](src/lib/utils/notify.sh), which picks `osascript` on macOS and `notify-send` on Linux and passes the title and message as arguments, never inside AppleScript source.
+- It goes through `lib/notify.sh`, which picks `osascript` on macOS and `notify-send` on Linux and passes the title and message as arguments, never inside AppleScript source.
 - It sits behind `@<prefix>_revamped_notify`, and the default is `0`. A fresh install never shows a notification.
 - The same state always shows in the status line or the member's popup, so turning notifications off loses nothing.
 - A missing notifier is not an error. `doctor` reports which one would be used.

@@ -5,7 +5,7 @@ _TMUX_PLUGIN_CACHE_LOADED=1
 
 _CACHE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
-source "${_CACHE_SCRIPT_DIR}/../tmux/tmux-ops.sh"
+source "${_CACHE_SCRIPT_DIR}/tmux.sh"
 
 CACHE_PREFIX="${CACHE_PREFIX:-tmux_plugin}"
 CACHE_MAX_RUN_DEFAULT=20

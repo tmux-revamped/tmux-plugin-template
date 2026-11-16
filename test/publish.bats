@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/../../helpers.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
-PUBLISH_LIB="${BATS_TEST_DIRNAME}/../../../src/lib/utils/publish.sh"
+PUBLISH_LIB="${BATS_TEST_DIRNAME}/../lib/publish.sh"
 
 setup() {
   setup_test_environment
