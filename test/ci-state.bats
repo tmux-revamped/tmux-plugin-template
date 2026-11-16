@@ -1,5 +1,4 @@
 #!/usr/bin/env bats
-# shellcheck disable=SC2016,SC2030,SC2031
 
 setup() {
   SCRIPT="$(cd "${BATS_TEST_DIRNAME:-.}/.." && pwd)/.github/scripts/ci-state.sh"

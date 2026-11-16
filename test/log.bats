@@ -113,3 +113,20 @@ setup() {
   # Assert
   [[ "${output}" = "@test_rev_enable_logging" ]]
 }
+
+@test "log.sh - an unreadable size leaves the log whole" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+  export REVAMPED_LOG_MAX_SIZE=1
+  mkdir -p "${REVAMPED_LOG_DIR}" "${BATS_TEST_TMPDIR}/stubs"
+  printf 'l1\nl2\n' >"${REVAMPED_LOG_FILE}"
+  printf '#!/bin/sh\nprintf "garbage\\n"\n' >"${BATS_TEST_TMPDIR}/stubs/stat"
+  chmod +x "${BATS_TEST_TMPDIR}/stubs/stat"
+
+  # Act
+  lib_call log revamped_log_error comp trigger
+
+  # Assert
+  actual="$(count_matching '' "${REVAMPED_LOG_FILE}")"
+  [[ "${actual}" -eq 3 ]]
+}

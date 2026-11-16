@@ -74,7 +74,7 @@ revamped_publish_pad() {
 revamped_publish_width() {
   revamped_publish_width_own=$(revamped_tmux_get "@$1_$2_width")
   case "${revamped_publish_width_own}" in
-  '' | *[!0-9]*) ;;
+  '' | *[!0-9]*) : ;;
   *)
     printf '%s' "${revamped_publish_width_own}"
     return 0

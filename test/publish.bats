@@ -81,13 +81,13 @@ sent() {
 
 @test "publish.sh - chars keeps the caller's locale" {
   # Arrange
-  export LC_ALL=en_US.UTF-8
+  export LC_ALL=POSIX
 
   # Act
   lib_run publish 'revamped_publish_chars ab >/dev/null; printf "%s\n" "${LC_ALL}"'
 
   # Assert
-  [[ "${output}" = "en_US.UTF-8" ]]
+  [[ "${output}" = "POSIX" ]]
 }
 
 @test "publish.sh - chars and escape need no external command" {

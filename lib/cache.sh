@@ -67,13 +67,15 @@ revamped_cache_should_refresh() {
   [ "${revamped_cache_measure_age}" -ge "${revamped_cache_should_refresh_limit}" ]
 }
 
+revamped_cache_spawn_run() {
+  revamped_cache_spawn_key="$1"
+  trap 'revamped_cache_clear_lock "${revamped_cache_spawn_key}"' EXIT
+  shift
+  "$@"
+}
+
 revamped_cache_spawn() {
-  (
-    revamped_cache_spawn_key="$1"
-    trap 'revamped_cache_clear_lock "${revamped_cache_spawn_key}"' EXIT
-    shift
-    "$@"
-  ) </dev/null >/dev/null 2>&1 &
+  (revamped_cache_spawn_run "$@") </dev/null >/dev/null 2>&1 &
 }
 
 revamped_cache_refresh_if_stale() {

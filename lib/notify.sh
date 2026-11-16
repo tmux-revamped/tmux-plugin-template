@@ -29,9 +29,7 @@ revamped_notify_send() {
   revamped_notify_send_backend=$(revamped_notify_backend)
   case "${revamped_notify_send_backend}" in
   osascript)
-    osascript -e 'on run argv' \
-      -e 'display notification (item 2 of argv) with title (item 1 of argv)' \
-      -e 'end run' "$1" "$2" >/dev/null 2>&1
+    osascript -e 'on run argv' -e 'display notification (item 2 of argv) with title (item 1 of argv)' -e 'end run' "$1" "$2" >/dev/null 2>&1
     ;;
   notify-send) notify-send -- "$1" "$2" >/dev/null 2>&1 ;;
   *) : ;;

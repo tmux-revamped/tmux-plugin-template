@@ -387,3 +387,26 @@ wait_for_file() {
   [[ "${output}" != "42" ]]
   [[ "${output}" =~ ^[0-9]+$ ]]
 }
+
+@test "ticker.sh - a second write to an option replaces the first" {
+  # Arrange
+  local script='revamped_ticker_set_option @beta one; revamped_ticker_set_option @beta two; revamped_ticker_get_option @beta ""'
+
+  # Act
+  lib_run ticker "${script}"
+
+  # Assert
+  [[ "${output}" == "two" ]]
+}
+
+@test "ticker.sh - install reads the platform once the platform module is loaded" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_LOG="${BATS_TEST_TMPDIR}/uname.log"
+
+  # Act
+  lib_run ticker '. "${REVAMPED_LIB}/platform.sh"; revamped_ticker_install demo'
+
+  # Assert
+  actual="$(count_matching '^-s$' "${REVAMPED_TEST_UNAME_LOG}")"
+  [[ "${actual}" -eq 1 ]]
+}
