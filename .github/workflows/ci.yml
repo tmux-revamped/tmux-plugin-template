@@ -148,7 +148,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Run the suites
-        run: make test
+        run: |
+          set -eu
+          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          echo "::stop-commands::${marker}"
+          make test
+          echo "::${marker}::"
 
   test-macos:
     name: test (${{ matrix.os }}, ${{ matrix.profile }})
@@ -228,7 +233,12 @@ jobs:
               ;;
           esac
       - name: Run the suites
-        run: make test
+        run: |
+          set -eu
+          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          echo "::stop-commands::${marker}"
+          make test
+          echo "::${marker}::"
 
   coverage:
     name: coverage
@@ -248,7 +258,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats tmux python3 kcov
       - name: Measure line coverage and enforce the floor
-        run: make coverage-kcov
+        run: |
+          set -eu
+          marker="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+          echo "::stop-commands::${marker}"
+          make coverage-kcov
+          echo "::${marker}::"
 
   security:
     name: security
