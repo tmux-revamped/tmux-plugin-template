@@ -1,11 +1,7 @@
-#!/usr/bin/env bash
-# shellcheck disable=SC2034  # constants are sourced and read by other modules
+#!/bin/sh
+# shellcheck disable=SC2034
 
-[[ -n "${_TMUX_PLUGIN_CONSTANTS_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_CONSTANTS_LOADED=1
+[ -n "${TMUX_PLUGIN_TEMPLATE_CORE_LOADED:-}" ] && return 0
+TMUX_PLUGIN_TEMPLATE_CORE_LOADED=1
 
 readonly TMUX_PLUGIN_TEMPLATE_VERSION="1.1.0"
-
-readonly TMUX_PLUGIN_DEFAULT_MAX_AGE="5"
-
-readonly TMUX_PLUGIN_PENDING="..."
