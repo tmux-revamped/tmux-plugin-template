@@ -161,7 +161,7 @@ jobs:
           echo "::stop-commands::${marker}"
           ruby_dir="$(dirname "$(command -v ruby)")"
           dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
-          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh scripts/coverage.sh
+          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh .github/scripts/coverage.sh
           echo "::${marker}::"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: matrix.coverage
@@ -222,7 +222,7 @@ jobs:
           echo "::stop-commands::${marker}"
           ruby_dir="$(dirname "$(command -v ruby)")"
           dirs="$(paste -s -d : "${RUNNER_TEMP}/toolset-path")"
-          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh scripts/coverage.sh
+          PATH="${ruby_dir}:${dirs:+${dirs}:}${PATH}" sh .github/scripts/coverage.sh
           echo "::${marker}::"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: matrix.coverage
@@ -250,7 +250,7 @@ jobs:
           path: results
       - name: Merge both platforms and enforce 100% line coverage
         run: >-
-          python3 scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' 100
+          python3 .github/scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' 100
           results/coverage-Linux/.resultset.json results/coverage-macOS/.resultset.json
 
   security:

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 minimum=${1:-100}
 bash_bin=$(command -v bash)
 # shellcheck disable=SC2016
@@ -10,7 +10,7 @@ if ! "${bash_bin}" -c '[ "${BASH_VERSINFO[0]}" -ge 4 ]' 2>/dev/null; then
   exit 1
 fi
 ruby_bin=$(command -v ruby)
-bashcov_bin="${root}/scripts/bashcov-run.rb"
+bashcov_bin="${root}/.github/scripts/bashcov-run.rb"
 hashbang=$(printf '\043\041')
 
 rm -rf "${root}/coverage"
@@ -34,9 +34,9 @@ if ! BUNDLE_GEMFILE="${root}/Gemfile" "${ruby_bin}" -rbundler/setup -e '' 2>"${w
   exit 1
 fi
 
-if ! BUNDLE_GEMFILE="${root}/Gemfile" "${ruby_bin}" -rbundler/setup "${root}/scripts/bashcov-lexer.test.rb" \
+if ! BUNDLE_GEMFILE="${root}/Gemfile" "${ruby_bin}" -rbundler/setup "${root}/.github/scripts/bashcov-lexer.test.rb" \
   >/dev/null 2>"${wrapper_dir}/lexer.err"; then
-  printf 'coverage: bashcov miscounts the lines after a quoted string, so scripts/bashcov-lexer.rb needs updating.\n' >&2
+  printf 'coverage: bashcov miscounts the lines after a quoted string, so .github/scripts/bashcov-lexer.rb needs updating.\n' >&2
   cat "${wrapper_dir}/lexer.err" >&2
   exit 1
 fi
@@ -83,4 +83,4 @@ fi
 REVAMPED_COVERAGE=1 REVAMPED_TEST_SHELL="${wrapper}" bats "$@" "${root}/test"
 
 cd "${root}"
-python3 scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' "${minimum}" coverage/.resultset.json
+python3 .github/scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' "${minimum}" coverage/.resultset.json

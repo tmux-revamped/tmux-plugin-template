@@ -23,7 +23,7 @@ end
 rewritten = patterns.zip(shipped).count { |(new, _), (old, _)| !new.equal?(old) }
 unless rewritten == string_patterns
   abort format("coverage: bashcov %<version>s has %<found>d multiline string patterns where %<expected>d " \
-               "were expected, so scripts/bashcov-lexer.rb no longer fits its lexer.",
+               "were expected, so .github/scripts/bashcov-lexer.rb no longer fits its lexer.",
                version: Bashcov::VERSION, found: rewritten, expected: string_patterns)
 end
 
