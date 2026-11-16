@@ -30,11 +30,6 @@ jobs:
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
         with:
           egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 0
-          persist-credentials: false
       - name: Merge the pull request once every check on its commit passed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -63,19 +58,9 @@ jobs:
             echo "${waiting} check(s) on ${HEAD_SHA} are not green yet"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          gh auth setup-git
-          git fetch --quiet origin "${HEAD_SHA}"
-          merge_sha="$(sh .github/scripts/bot-checksums.sh "${HEAD_SHA}")"
-          if [ -n "${merge_sha}" ]; then
-            git push --quiet origin "${merge_sha}:refs/heads/${BRANCH}"
-          else
-            merge_sha="${HEAD_SHA}"
-          fi
           title="$(gh pr view "${number}" --repo "${REPO}" --json title -q .title)"
           gh pr merge "${number}" --repo "${REPO}" --squash \
-            --match-head-commit "${merge_sha}" \
+            --match-head-commit "${HEAD_SHA}" \
             --subject "${title} (#${number})" \
             --body "Bot update, merged after every check passed on ${HEAD_SHA}."
           for workflow in ${WORKFLOW_FILES}; do

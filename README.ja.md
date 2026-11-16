@@ -2,7 +2,7 @@
 
 # tmux-plugin-template
 
-<strong>tmux-revampedプラグインの出発点です。共有ライブラリ、batsハーネス、CI、ファミリーのツールを含みます。</strong>
+<strong>tmux-revampedプラグインの出発点です。共有ライブラリ、batsハーネス、CIを含みます。</strong>
 
 [English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
@@ -34,8 +34,7 @@
 |:-----|:-----|:-----------------------|
 | 共有ライブラリ | [`src/lib`](src/lib) | tmuxオプションに保持するステータスのキャッシュ、バックグラウンドの描画処理、まとめて行うオプションの書き込み、tmuxオプションの補助関数、プラットフォームの判定、任意で有効にするエラーログ |
 | テストハーネス | [`test`](test) | 単体テスト用のメモリー上のtmuxモックと、結合テスト用の専用ソケットのtmuxサーバーを備えたbatsの補助関数 |
-| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、下限95パーセントのkcov、ファミリーの確認、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
-| ファミリーのツール | [`family/bin`](family/bin) | [`FAMILY.md`](FAMILY.md)にあるファミリーの規約のための、監査、同期、伝播、一斉調査、診断、README生成 |
+| CIとリリース | [`.github/workflows`](.github/workflows) | `ci.yml`はlint、GNU、BSD、uutilsのツールを使ったUbuntuとmacOSでのテスト、下限95パーセントのkcov、セキュリティスキャンを実行します。`release.yml`は`ci`が成功したプッシュのあとにsemantic-releaseでリリースを公開します。`bot-merge.yml`は成功したDependabotとRenovateのプルリクエストをマージします |
 | makeのターゲット | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 動作要件
@@ -61,12 +60,12 @@
 2. ルートにエントリーポイント`example-revamped.tmux`を追加します。TPMはプラグインのディレクトリにあるすべての`*.tmux`ファイルを実行します。プラグインの処理は`src/example.sh`に、独自のモジュールは`src/lib/example/`に置きます。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped)はこの方法で作った完成したステータスプラグインです。
 3. [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh)の`TMUX_PLUGIN_TEMPLATE_VERSION`を`EXAMPLE_REVAMPED_VERSION`に改名します。リリースがこの定数を書き換え、[`CHANGELOG.md`](CHANGELOG.md)の最新リリースと一致しないと`make lint`が失敗します。
 4. tmuxオプションはすべて`@example_revamped_<name>`と名付けます。`make lint`はディレクトリ名からスラッグを取り、[`src/`](src)配下のオプションが[`README.md`](README.md)にないと失敗します。
-5. 既定のキーは、[`family/KEYS.md`](family/KEYS.md)の割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
-6. [`family/MEMBERS`](family/MEMBERS)にリポジトリを追加します。どちらのファイルも共有されているので、1つのメンバーで変更してから`family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`を実行します。これが隣にチェックアウトしたすべてのメンバーにファイルをコピーしてコミットします。ゲートが通ったら各メンバーの`main`をプッシュします。
-7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印を残します。[`family/bin/gen-readme`](family/bin/gen-readme)が、[`family/MEMBERS`](family/MEMBERS)のメンバー一覧と各メンバーの説明文から、その間の節を埋めます。
+5. 既定のキーは、[`FAMILY.md`](FAMILY.md)のKey bindingsにある割り当てから多くても1つを選び、他の動作は既定で割り当てないままにします。
+6. [`FAMILY.md`](FAMILY.md)のメンバー表と`cmp`ループ、そしてすべてのREADMEのファミリーの節にリポジトリを、同じ作業の中ですべてのメンバーで追加します。
+7. このREADMEと同じヘッダーでREADMEを書き、`family:begin`と`family:end`の目印の間の節をほかのメンバーからコピーして、このプラグインの行に印を付けます。
 8. 開発の節にある検査を、すべて0で終了するまで実行します。
 
-[`family/OWNERSHIP`](family/OWNERSHIP)で`owned`とされたファイルは、すべてのメンバーでバイト単位で同一に保たれます。それらは[`family/bin/propagate`](family/bin/propagate)を通してのみ変更してください。
+[`FAMILY.md`](FAMILY.md)が同一と定めるファイルは、すべてのメンバーで同じに保たれます。変更するときは、同じ作業の中ですべてのメンバーで変更します。
 
 ## 使い方
 
@@ -131,12 +130,11 @@ graph LR
 | コマンド | 実行するもの |
 |:--------|:-------------|
 | `make fmt` | すべてのスクリプトに`shfmt -i 2`を実行 |
-| `make lint` | shfmt、shellcheck、名前とソースとピン留めの確認、yamllint、actionlintを指摘ゼロで実行 |
+| `make lint` | shfmt、shellcheck、yamllint、actionlintを指摘ゼロで実行 |
 | `make test` | batsのテストスイート |
 | `make test-all` | インストールされているbashとzshをそれぞれログインシェルにしてbatsのテストスイートを実行 |
 | `make test-linux` | Ubuntuのコンテナでbatsのテストスイートを実行 |
 | `make coverage` | Ubuntuのコンテナでkcovによる行カバレッジを測り、下限は95パーセント |
-| [`family/bin/audit`](family/bin/audit) | ファミリーの規約に対するこのリポジトリの検査 |
 
 [`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指していると失敗します。
 
@@ -150,9 +148,9 @@ graph LR
 
 ## tmux-revamped ファミリー
 
-このプラグインは tmux-revamped ファミリーの一員です。すべてのメンバーが [`FAMILY.md`](FAMILY.md) の同じ規約、`family/` 配下の同じツール、同じ共有ライブラリを持ち、チェックサムの一覧によってバイト単位で同一に保たれています。メンバーは一緒にインストールする前提で作られており、ほかのメンバーが使うキーや tmux オプションを使うメンバーはありません。
+このプラグインは tmux-revamped ファミリーの一員です。すべてのメンバーが [`FAMILY.md`](FAMILY.md) の同じ規約と同じ共有ライブラリを持ちます。メンバーは一緒にインストールする前提で作られており、ほかのメンバーが使うキーや tmux オプションを使うメンバーはありません。
 
-あるメンバーで見つかった不具合は、修正完了とする前に全メンバーで同じ不具合を探します。この義務は記憶に頼らず規約に書かれており、`family/bin/sweep` がその作業を行います。
+あるメンバーで見つかった不具合は、修正完了とする前に全メンバーで同じ不具合を探します。
 
 | メンバー | 機能 |
 |---|---|
@@ -172,7 +170,7 @@ graph LR
 | [`tmux-network-revamped`](https://github.com/tmux-revamped/tmux-network-revamped) | ネットワークのスループットをステータスバーに表示し、描画を止めません |
 | [`tmux-pain-control-revamped`](https://github.com/tmux-revamped/tmux-pain-control-revamped) | tmux のペインとウィンドウの操作キー。tmux のバージョンに対応し、vim と共存でき、どの prefix キーも無効にできます |
 | [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | tmuxのすべてのセッション、ウィンドウ、ペインを保存し、タイマーで自動保存して、再起動後にすべて復元します |
-| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **このプラグイン**、tmux-revampedプラグインの出発点です。共有ライブラリ、batsハーネス、CI、ファミリーのツールを含みます |
+| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **このプラグイン**、tmux-revampedプラグインの出発点です。共有ライブラリ、batsハーネス、CIを含みます |
 | [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | すべての状態をtmuxオプションに保持し、一時ファイルを使わない、tmuxステータスバーのポモドーロタイマーです |
 | [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM、スワップ、メモリプレッシャーをtmuxのステータスバーに表示します。計測はバックグラウンドで行うため描画を待たせません |
 | [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | tmuxのステータスバー上でウィンドウのタブをマウスでドラッグして、そのウィンドウを移動します |
@@ -181,15 +179,5 @@ graph LR
 | [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | tmuxのタイル型ウィンドウ管理です。BSPのdwindleとspiralを含む8つのレイアウトと、レイアウトの取り消しがあります |
 | [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | ステータスバーにローカル時計と世界時計を時間帯ごとの色で表示し、カウントダウンと夏時間の警告も出します |
 | [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | wttr.inの天気をバックグラウンドで取得し、ステータスバーを待たせずに表示します |
-
-### インストールの確認
-
-全メンバーがディスク上にあれば、1 つのコマンドでメンバー間の衝突を報告できます。
-
-```sh
-family/bin/doctor --live
-```
-
-各メンバーと実行中の tmux サーバーを読み取り、重複したキー、重複したステータスのプレースホルダー、命名規則に合わないオプション、規約のバージョンが古いメンバーを報告します。
 
 <!-- family:end -->

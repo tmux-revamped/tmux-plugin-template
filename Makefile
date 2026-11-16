@@ -1,7 +1,7 @@
 SHELL := /bin/sh
-SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux' 'family/bin/*')
-BASH_SOURCES = $(shell git ls-files -- 'src/*.sh' '*.tmux' '*.bash' 'family/bin/*' 'family/lib/*.sh' 'test/*.sh')
-POSIX_SCRIPTS = $(shell git ls-files -- '.github/scripts/*.sh' 'scripts/*.sh')
+SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux')
+BASH_SOURCES = $(shell git ls-files -- 'src/*.sh' '*.tmux' '*.bash' 'test/*.sh')
+POSIX_SCRIPTS = $(shell git ls-files -- '.github/scripts/*.sh')
 LINUX_IMAGE := ubuntu:26.04
 LINUX_PACKAGES := bats git make tmux zsh kcov python3 ca-certificates
 COVERAGE_MIN := 95
@@ -12,7 +12,7 @@ CONTAINER_DIR := /src/$(notdir $(CURDIR))
 help:
 	@echo "targets:"
 	@echo "  fmt         format every script with shfmt -i 2"
-	@echo "  lint        shfmt, ShellCheck, the name, source and pin checks, yamllint and actionlint at zero findings"
+	@echo "  lint        shfmt, ShellCheck, yamllint and actionlint at zero findings"
 	@echo "  test        the bats suites"
 	@echo "  test-all    the bats suites with every installed bash and zsh as the login shell"
 	@echo "  test-linux  the bats suites in an Ubuntu container"
@@ -27,9 +27,6 @@ lint:
 	shfmt -i 2 -d $(SCRIPTS)
 	shellcheck -x --severity=warning --shell=bash $(BASH_SOURCES)
 	shellcheck -x -o all -s sh $(POSIX_SCRIPTS)
-	sh scripts/check-names.sh
-	sh scripts/check-source.sh
-	sh scripts/check-pins.sh
 	yamllint -s -c .yamllint.yml .github .yamllint.yml
 	actionlint
 

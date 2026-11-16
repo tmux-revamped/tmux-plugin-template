@@ -2,7 +2,7 @@
 
 # tmux-plugin-template
 
-<strong>The starting point for a tmux-revamped plugin: shared library, bats harness, CI and family tooling.</strong>
+<strong>The starting point for a tmux-revamped plugin: shared library, bats harness and CI.</strong>
 
 English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
@@ -34,8 +34,7 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 |:-----|:-----|:-----------------------|
 | Shared library | [`src/lib`](src/lib) | a status cache kept in tmux options, a background renderer, batched option writes, tmux option helpers, platform detection and an opt-in error log |
 | Test harness | [`test`](test) | bats helpers with an in-memory tmux mock for unit tests and a private-socket tmux server for integration tests |
-| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, a 95 percent kcov floor, the family check and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
-| Family tooling | [`family/bin`](family/bin) | audit, sync, propagate, sweep, doctor and README generation for the family contract in [`FAMILY.md`](FAMILY.md) |
+| CI and releases | [`.github/workflows`](.github/workflows) | `ci.yml` runs lint, the tests on Ubuntu and macOS with GNU, BSD and uutils tools, a 95 percent kcov floor and the security scans; `release.yml` publishes a release with semantic-release after a green push; `bot-merge.yml` merges a green Dependabot or Renovate pull request |
 | Make targets | [`Makefile`](Makefile) | `fmt`, `lint`, `test`, `test-all`, `test-linux`, `coverage`, `check`, `clean` |
 
 ## Requirements
@@ -61,12 +60,12 @@ This repository is not a plugin you install. It is the base every `tmux-*-revamp
 2. Add the entry point `example-revamped.tmux` at the root. TPM runs every `*.tmux` file in a plugin directory. Put the plugin logic in `src/example.sh` and its own modules under `src/lib/example/`. [tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) is a complete status plugin built this way.
 3. Rename `TMUX_PLUGIN_TEMPLATE_VERSION` in [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) to `EXAMPLE_REVAMPED_VERSION`. A release stamps it, and `make lint` fails unless it matches the newest release in [`CHANGELOG.md`](CHANGELOG.md).
 4. Name every tmux option `@example_revamped_<name>`. `make lint` takes the slug from the directory name and fails when an option under [`src/`](src) is missing from [`README.md`](README.md).
-5. Pick at most one default key from the allocation in [`family/KEYS.md`](family/KEYS.md), and leave every other action unbound by default.
-6. Add the repository to [`family/MEMBERS`](family/MEMBERS). Both files are owned, so change them in one member and run `family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`, which copies them into every member checked out beside this one and commits there. Push each `main` after its gates pass.
-7. Write the README with the same header as this one and keep the `family:begin` and `family:end` markers. [`family/bin/gen-readme`](family/bin/gen-readme) fills the section between them from the member list in [`family/MEMBERS`](family/MEMBERS) and the tagline of each member.
+5. Pick at most one default key from the allocation under Key bindings in [`FAMILY.md`](FAMILY.md), and leave every other action unbound by default.
+6. Add the repository to the member table and the `cmp` loop in [`FAMILY.md`](FAMILY.md), and to the family section of every README, in every member in the same task.
+7. Write the README with the same header as this one, and copy the section between the `family:begin` and `family:end` markers from another member, marking this plugin's row.
 8. Run the gates in the Development section until all of them exit 0.
 
-Every file listed as `owned` in [`family/OWNERSHIP`](family/OWNERSHIP) stays byte-identical across members. Edit those only through [`family/bin/propagate`](family/bin/propagate).
+Every file [`FAMILY.md`](FAMILY.md) lists as identical stays the same in every member. Change one only by changing it in every member in the same task.
 
 ## Usage
 
@@ -131,12 +130,11 @@ For plugins whose placeholders run often, `ticker_run` keeps one background proc
 | Command | What it runs |
 |:--------|:-------------|
 | `make fmt` | shfmt `-i 2` on every script |
-| `make lint` | shfmt, shellcheck, the name, source and pin checks, yamllint and actionlint, at zero findings |
+| `make lint` | shfmt, shellcheck, yamllint and actionlint, at zero findings |
 | `make test` | the bats suite |
 | `make test-all` | the bats suite once with every installed bash and zsh as the login shell |
 | `make test-linux` | the bats suite in an Ubuntu container |
 | `make coverage` | kcov line coverage in an Ubuntu container, with a 95 percent floor |
-| [`family/bin/audit`](family/bin/audit) | this repository against the family contract |
 
 [`test/docs.bats`](test/docs.bats) fails when a relative link in this README points at a path that does not exist.
 
@@ -150,15 +148,9 @@ Commits follow the conventional commit format and go straight to `main`. After a
 
 ## The tmux-revamped family
 
-This plugin is one member of the tmux-revamped family. Every member carries the
-same contract in [`FAMILY.md`](FAMILY.md), the same tooling under `family/`, and
-the same shared library, all held byte-identical by a checksum manifest. They are
-built to be installed together: no member claims a key or a tmux option that
-another member claims.
+This plugin is one member of the tmux-revamped family. Every member carries the same contract in [`FAMILY.md`](FAMILY.md) and the same shared library, and they are built to be installed together: no member claims a key or a tmux option that another member claims.
 
-A defect found in one member is hunted across all of them before the fix is
-called done. That obligation is written into the contract rather than left to
-memory, and `family/bin/sweep` is how it is discharged.
+A defect found in one member is hunted across all of them before the fix is called done.
 
 | Member | What it does |
 |---|---|
@@ -178,7 +170,7 @@ memory, and `family/bin/sweep` is how it is discharged.
 | [`tmux-network-revamped`](https://github.com/tmux-revamped/tmux-network-revamped) | Network throughput in your tmux status bar, without ever blocking the render |
 | [`tmux-pain-control-revamped`](https://github.com/tmux-revamped/tmux-pain-control-revamped) | Pane and window management bindings for tmux, version aware, vim friendly, every prefix key can be disabled |
 | [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | Save every tmux session, window and pane, auto-save on a timer, and restore it all after a reboot |
-| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **this plugin**, The starting point for a tmux-revamped plugin: shared library, bats harness, CI and family tooling |
+| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **this plugin**, The starting point for a tmux-revamped plugin: shared library, bats harness and CI |
 | [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | A Pomodoro timer in the tmux status bar that keeps all of its state in tmux options, with no temp files |
 | [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM, swap and memory pressure in the tmux status bar, sampled in the background so the render never waits |
 | [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | Drag a window tab along the tmux status bar with the mouse to move that window |
@@ -187,17 +179,5 @@ memory, and `family/bin/sweep` is how it is discharged.
 | [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | Tiling window management for tmux: eight layouts including BSP dwindle and spiral, with layout undo |
 | [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | Local and world clocks for the tmux status bar, colored by time of day, with countdowns and a DST warning |
 | [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | Weather for the tmux status bar from wttr.in, fetched in the background so the status line never waits |
-
-### Checking an installation
-
-With every member on disk, one command reports any conflict between them:
-
-```sh
-family/bin/doctor --live
-```
-
-It reads each member and the running tmux server, and reports duplicate keys,
-duplicate status placeholders, options outside the naming grammar, and any
-member whose contract version has fallen behind.
 
 <!-- family:end -->

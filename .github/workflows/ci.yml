@@ -250,48 +250,6 @@ jobs:
       - name: Measure line coverage and enforce the floor
         run: make coverage-kcov
 
-  family:
-    name: family
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    env:
-      BOT_PULL_REQUEST: >-
-        ${{ github.event_name == 'pull_request'
-        && endsWith(github.event.pull_request.user.login, '[bot]') }}
-    steps:
-      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Verify this member against the contract
-        run: |
-          set -euo pipefail
-          if [ "${BOT_PULL_REQUEST}" = true ]; then
-            family/bin/audit --bot
-          else
-            family/bin/audit
-          fi
-      - name: Verify the README family section is current
-        run: |
-          set -euo pipefail
-          members="${RUNNER_TEMP}/members"
-          mkdir -p "${members}"
-          grep -vE '^[[:space:]]*(#|$)' family/MEMBERS | while IFS= read -r member; do
-            git clone --quiet --depth=1 "https://github.com/tmux-revamped/${member}.git" "${members}/${member}"
-          done
-          family/bin/gen-readme --check --members-dir "${members}"
-      - name: Compare every owned file against the other members
-        if: env.BOT_PULL_REQUEST != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: family/bin/sync --check --remote-base https://github.com/tmux-revamped
-      - name: Fail when a newer runner image exists than the one pinned
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: family/bin/check-runner-drift
-
   security:
     name: security
     runs-on: ubuntu-26.04
@@ -308,8 +266,6 @@ jobs:
         uses: docker://ghcr.io/zizmorcore/zizmor:1.30.1@sha256:a2eb396d886c053073405c7a980f2139ba2248ec172243cfa3841e57196e8101
         with:
           args: --persona=regular --format=plain .github/workflows
-      - name: Every action and image is pinned
-        run: sh scripts/check-pins.sh
 
   scorecard:
     name: openssf scorecard

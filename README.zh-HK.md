@@ -2,7 +2,7 @@
 
 # tmux-plugin-template
 
-<strong>tmux-revamped 插件的起點：共用程式庫、bats 測試框架、CI 和系列工具。</strong>
+<strong>tmux-revamped 插件的起點：共用程式庫、bats 測試框架和 CI。</strong>
 
 [English](README.md) &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; 繁體中文（香港）
 
@@ -34,8 +34,7 @@
 |:-----|:-----|:-----------------------|
 | 共用程式庫 | [`src/lib`](src/lib) | 存放在 tmux 選項中的狀態快取、背景繪製器、批次寫入選項、tmux 選項輔助函數、平台偵測，以及可選開啟的錯誤日誌 |
 | 測試框架 | [`test`](test) | bats 輔助函數，單元測試用記憶體中的 tmux 模擬，整合測試用獨立 socket 的 tmux 伺服器 |
-| CI 和發佈 | [`.github/workflows`](.github/workflows) | `ci.yml` 執行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的測試、下限 95% 的 kcov、系列檢查和安全掃描；`release.yml` 在推送通過 `ci` 後用 semantic-release 發佈；`bot-merge.yml` 合併通過檢查的 Dependabot 或 Renovate 拉取請求 |
-| 系列工具 | [`family/bin`](family/bin) | 為 [`FAMILY.md`](FAMILY.md) 中的系列約定提供審核、同步、傳播、排查、診斷和 README 產生 |
+| CI 和發佈 | [`.github/workflows`](.github/workflows) | `ci.yml` 執行 lint、在 Ubuntu 和 macOS 上使用 GNU、BSD 和 uutils 工具的測試、下限 95% 的 kcov 和安全掃描；`release.yml` 在推送通過 `ci` 後用 semantic-release 發佈；`bot-merge.yml` 合併通過檢查的 Dependabot 或 Renovate 拉取請求 |
 | make 目標 | [`Makefile`](Makefile) | `fmt`、`lint`、`test`、`test-all`、`test-linux`、`coverage`、`check`、`clean` |
 
 ## 系統要求
@@ -61,12 +60,12 @@
 2. 在根目錄加入入口腳本 `example-revamped.tmux`。TPM 會執行插件目錄中的每個 `*.tmux` 檔案。把插件邏輯放在 `src/example.sh`，自己的模組放在 `src/lib/example/` 下。[tmux-time-revamped](https://github.com/tmux-revamped/tmux-time-revamped) 就是以這種方式建立的完整狀態插件。
 3. 把 [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) 中的 `TMUX_PLUGIN_TEMPLATE_VERSION` 重新命名為 `EXAMPLE_REVAMPED_VERSION`。發佈會寫入該常數；如果它和 [`CHANGELOG.md`](CHANGELOG.md) 中最新的發佈不一致，`make lint` 會失敗。
 4. 每個 tmux 選項都命名為 `@example_revamped_<name>`。`make lint` 從目錄名稱取得識別名稱，當 [`src/`](src) 下的某個選項沒有出現在 [`README.md`](README.md) 中時失敗。
-5. 從 [`family/KEYS.md`](family/KEYS.md) 的分配中最多選一個預設按鍵，其他動作預設不綁定。
-6. 把儲存庫加入 [`family/MEMBERS`](family/MEMBERS)。這兩個檔案都是共用的，所以在一個成員中修改後執行 `family/bin/propagate --members-dir .. --branch main --no-push --message 'chore(family): add tmux-example-revamped'`，它會把檔案複製到旁邊檢出的每個成員並在那裏提交。每個成員的檢查通過後，推送它的 `main`。
-7. 以與本檔案相同的頁首編寫 README，並保留 `family:begin` 和 `family:end` 標記。[`family/bin/gen-readme`](family/bin/gen-readme) 會根據 [`family/MEMBERS`](family/MEMBERS) 中的成員清單和每個成員的簡介填寫兩者之間的部分。
+5. 從 [`FAMILY.md`](FAMILY.md) 中 Key bindings 的分配裏最多選一個預設按鍵，其他動作預設不綁定。
+6. 在同一個任務中，於每個成員裏把儲存庫加入 [`FAMILY.md`](FAMILY.md) 的成員表和 `cmp` 迴圈，以及每個 README 的家族部分。
+7. 以與本檔案相同的頁首編寫 README，從另一個成員複製 `family:begin` 和 `family:end` 標記之間的部分，並標出本插件所在的行。
 8. 執行「開發」一節中的檢查，直至全部以 0 結束。
 
-[`family/OWNERSHIP`](family/OWNERSHIP) 中列為 `owned` 的每個檔案在所有成員之間逐位元組一致。只能透過 [`family/bin/propagate`](family/bin/propagate) 修改這些檔案。
+[`FAMILY.md`](FAMILY.md) 列為相同的每個檔案在所有成員中保持一致。修改其中之一時，要在同一個任務中修改每個成員。
 
 ## 用法
 
@@ -131,12 +130,11 @@ graph LR
 | 指令 | 執行內容 |
 |:--------|:-------------|
 | `make fmt` | 對每個腳本執行 `shfmt -i 2` |
-| `make lint` | shfmt、shellcheck、名稱、原始碼和固定版本檢查、yamllint 和 actionlint，零問題 |
+| `make lint` | shfmt、shellcheck、yamllint 和 actionlint，零問題 |
 | `make test` | bats 測試套件 |
 | `make test-all` | 依次以每個已安裝的 bash 和 zsh 作為登入 shell 執行 bats 測試套件 |
 | `make test-linux` | 在 Ubuntu 容器中執行 bats 測試套件 |
 | `make coverage` | 在 Ubuntu 容器中量度 kcov 行覆蓋率，下限 95% |
-| [`family/bin/audit`](family/bin/audit) | 按系列約定檢查本儲存庫 |
 
 當本 README 中的相對連結指向不存在的路徑時，[`test/docs.bats`](test/docs.bats) 會失敗。
 
@@ -150,9 +148,9 @@ graph LR
 
 ## tmux-revamped 插件家族
 
-本插件是 tmux-revamped 插件家族的成員。每個成員都帶有 [`FAMILY.md`](FAMILY.md) 中的同一份約定、`family/` 下的同一套工具和同一個共用程式庫，並由校驗和清單確保逐位元組一致。這些成員可以一併安裝：任何成員都不會佔用其他成員使用的按鍵或 tmux 選項。
+這個插件是 tmux-revamped 插件家族的一員。每個成員都帶有 [`FAMILY.md`](FAMILY.md) 中相同的約定和相同的共用程式庫，並且設計為一起安裝：沒有成員佔用另一個成員佔用的按鍵或 tmux 選項。
 
-在一個成員中發現的缺陷，要在全部成員中排查後才算修正完成。這項責任寫在約定之中，而不是依靠記憶，`family/bin/sweep` 負責執行。
+在一個成員中發現的缺陷，要在全部成員中排查後才算修正完成。
 
 | 成員 | 功能 |
 |---|---|
@@ -172,7 +170,7 @@ graph LR
 | [`tmux-network-revamped`](https://github.com/tmux-revamped/tmux-network-revamped) | 在 tmux 狀態列顯示網絡傳輸量，從不阻塞繪製 |
 | [`tmux-pain-control-revamped`](https://github.com/tmux-revamped/tmux-pain-control-revamped) | tmux 的窗格和視窗管理按鍵，配合 tmux 版本，與 vim 相容，每個 prefix 按鍵都可停用 |
 | [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | 儲存 tmux 的所有工作階段、視窗及窗格，按計時器自動儲存，並在重新開機後全部還原 |
-| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **本插件**，tmux-revamped 插件的起點：共用程式庫、bats 測試框架、CI 和系列工具 |
+| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | **本插件**，tmux-revamped 插件的起點：共用程式庫、bats 測試框架和 CI |
 | [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | tmux 狀態列中的番茄鐘計時器，所有狀態都儲存在 tmux 選項中，不使用暫存檔 |
 | [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | 在 tmux 狀態列顯示記憶體、交換空間及記憶體壓力，在背景取樣，繪製從不等待 |
 | [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | 用滑鼠在 tmux 狀態列上拖動視窗標籤來移動該視窗 |
@@ -181,15 +179,5 @@ graph LR
 | [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | tmux 的平鋪視窗管理：八種版面，包括 BSP dwindle 和 spiral，並支援復原版面 |
 | [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | 狀態列中的本地時鐘和世界時鐘，按一天中的時段著色，並提供倒數和夏令時間提示 |
 | [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | 在背景從 wttr.in 取得天氣並顯示在狀態列，狀態列毋須等待 |
-
-### 檢查安裝
-
-所有成員都在磁碟上時，一個指令即可報告它們之間的任何衝突：
-
-```sh
-family/bin/doctor --live
-```
-
-它讀取每個成員和正在運行的 tmux 伺服器，報告重複的按鍵、重複的狀態佔位符、不符合命名規則的選項，以及約定版本落後的成員。
 
 <!-- family:end -->

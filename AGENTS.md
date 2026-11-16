@@ -8,15 +8,12 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 | Path | Holds |
 |:-----|:------|
-| [`src/lib/utils/`](src/lib/utils), [`src/lib/tmux/`](src/lib/tmux) | The shared library every member carries. Every file there except `constants.sh` is owned by the family |
+| [`src/lib/utils/`](src/lib/utils), [`src/lib/tmux/`](src/lib/tmux) | The shared library every member carries. Every file there except `constants.sh` is identical in every member |
 | [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | The template's constants, including its version |
-| [`test/lib/`](test/lib) | The shared library's suite, owned |
-| [`test/family/`](test/family) | The family tooling's suite, owned |
+| [`test/lib/`](test/lib) | The shared library's suite, identical in every member |
 | [`test/docs.bats`](test/docs.bats) | The README link check |
-| [`test/`](test), the other root suites | The suites of the lint checks and the CI scripts, such as [`test/bot-checksums.bats`](test/bot-checksums.bats) |
-| [`family/`](family) | The family tooling, owned |
-| [`scripts/`](scripts) | The checks `make lint` runs: names, source rules and action pins |
-| [`.github/scripts/`](.github/scripts) | The scripts only CI and the release run: version stamping, bot-merge checksums, CI state and recovery |
+| [`test/`](test), the other root suites | The CI scripts' suites, such as [`test/recover.bats`](test/recover.bats) |
+| [`.github/scripts/`](.github/scripts) | The scripts only CI and the release run: version stamping, CI state and recovery |
 
 ## Names
 
@@ -26,12 +23,12 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 ## Behaviour
 
-- The template is not a plugin anyone installs. It is the base a new member starts from, and a member of the family itself, so its owned files stay identical to every other member's.
+- The template is not a plugin anyone installs. It is the base a new member starts from, and a member of the family itself, so its identical files match every other member's.
 - It has no `.tmux` entry point, so the audit finds no entry point to check here.
 
 ## Domain rules
 
-- Shared work starts here when no member's feature needs it, because no plugin code competes with it, and reaches the other members through [`family/bin/propagate`](family/bin/propagate).
+- Shared work starts here when no member's feature needs it, because no plugin code competes with it, and is copied into every other member in the same task.
 - A new member is scaffolded from this repository, so anything a new member must carry from its first commit lives here.
 
 ## Release
@@ -49,12 +46,10 @@ As of 2026-11-15:
 - No `template-revamped` command with `help`, `version` and `doctor` in the family's form, no man page, no completions and no `manifest.json`.
 - No `make new-member NAME=<name>` scaffold.
 - No gum interface: no `lib/ui.sh`, `lib/table.awk`, themes or `test/bin/gum`.
-- No `screens/` and no recordings in the README.
+- No `screens/`: no VHS recording of each feature, no on-screen caption of the keys each recording presses, and no recordings in the README.
 - The README sections are not the family's order of Quick start, Usage, topic sections, Portability, Development and License.
 - Coverage is kcov with a 95 percent floor on Linux, not bashcov at 100 percent merged from macOS and Linux.
 - CI tests GNU, BSD and uutils tools in `ci.yml`, but not the six toolsets through `.github/scripts/toolset.sh`, and no shell matrix under `sh`, `dash`, `bash` and `zsh`.
 - No golden transcripts, `call.sh`, `run-matrix.sh` or `linux-container.sh`.
 - The Makefile has no `screens` or `install` target, `make lint` runs ShellCheck at warning level instead of `-o all` and no `mandoc -T lint`, and `make coverage` is kcov in a container.
-- [`scripts/check-names.sh`](scripts/check-names.sh) does not check the environment-variable prefix, because the shared library's globals, such as `CACHE_PREFIX` and `TICKER_SEP`, carry none.
-- The files that FAMILY.md names as owned, such as `ci.yml`, `release.yml` and [`.editorconfig`](.editorconfig), are not in [`family/OWNERSHIP`](family/OWNERSHIP) until every member carries them.
-- The family tooling is bash, so running the audit under `dash` fails.
+- The shared library's globals, such as `CACHE_PREFIX` and `TICKER_SEP`, carry no member prefix.
