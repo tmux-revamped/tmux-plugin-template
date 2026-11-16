@@ -3,9 +3,9 @@ PREFIX ?= $(HOME)/.local
 TOOL = template-revamped
 NAME ?=
 DEST ?= ../tmux-$(NAME)-revamped
-SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux' 'bin/*' 'test/bin/*')
-POSIX_SCRIPTS = $(shell git ls-files -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*' 'screens/*.sh')
-TEST_SCRIPTS = $(shell git ls-files -- 'test/*.bash' 'test/*.bats')
+SCRIPTS = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' '*.tmux' 'bin/*' 'test/bin/*')
+POSIX_SCRIPTS = $(shell git ls-files --cached --others --exclude-standard -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*' 'screens/*.sh')
+TEST_SCRIPTS = $(shell git ls-files --cached --others --exclude-standard -- 'test/*.bash' 'test/*.bats')
 
 .PHONY: help fmt lint test test-all test-linux coverage check screens install new-member clean
 
