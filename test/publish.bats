@@ -90,6 +90,17 @@ sent() {
   [[ "${output}" = "POSIX" ]]
 }
 
+@test "publish.sh - chars leaves LC_ALL unset when the caller had none" {
+  # Arrange
+  unset LC_ALL
+
+  # Act
+  lib_run publish 'revamped_publish_chars ab >/dev/null; printf "%s\n" "${LC_ALL-unset}"'
+
+  # Assert
+  [[ "${output}" = "unset" ]]
+}
+
 @test "publish.sh - chars and escape need no external command" {
   # Arrange
   harness_hide tr wc awk sed cut
