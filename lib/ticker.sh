@@ -154,7 +154,7 @@ ticker_install() {
   revamped_tmux_get() { ticker_get_option "$@"; }
   revamped_tmux_set() { ticker_set_option "$@"; }
   if [[ -n "${EPOCHSECONDS:-}" ]]; then
-    _cache_now() { printf '%s\n' "${EPOCHSECONDS}"; }
+    revamped_cache_now() { printf '%s\n' "${EPOCHSECONDS}"; }
   fi
   if declare -F revamped_platform_detect >/dev/null; then
     revamped_platform_detect

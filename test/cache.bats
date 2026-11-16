@@ -1,214 +1,279 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  export CACHE_PREFIX="test_rev"
-  export CACHE_SYNC=1
-  source "${BATS_TEST_DIRNAME}/../lib/cache.sh"
+  harness_setup
+  export REVAMPED_CACHE_PREFIX=test_rev REVAMPED_CACHE_SYNC=1 REVAMPED_TEST_NOW=1000000
 }
 
-teardown() {
-  cleanup_test_environment
+stored() {
+  tmux show-option -gqv "$1"
 }
 
-@test "cache.sh - public functions are defined" {
-  function_exists cache_get
-  function_exists cache_set
-  function_exists cache_age
-  function_exists cache_is_fresh
-  function_exists cache_should_refresh
-  function_exists cache_refresh_if_stale
-  function_exists cache_render
-  function_exists cache_set_if_stale
+store() {
+  tmux set-option -gq "$1" "$2"
 }
 
-@test "cache.sh - _cache_opt namespaces the option name" {
-  [[ "$(_cache_opt percent)" == "@test_rev_percent" ]]
+wait_until_stored() {
+  local tries=0
+  while [ "$(stored "$1")" != "$2" ] && [ "${tries}" -lt 200 ]; do
+    sleep 0.01
+    tries=$((tries + 1))
+  done
 }
 
-@test "cache.sh - cache_get is empty for an unset key" {
-  [[ -z "$(cache_get percent)" ]]
-}
-
-@test "cache.sh - cache_set then cache_get round-trips the value" {
-  cache_set percent "42"
-  [[ "$(cache_get percent)" == "42" ]]
-}
-
-@test "cache.sh - cache_set stamps the write time" {
+@test "cache.sh - get is empty for an unset key" {
   # Arrange
   local key=percent
 
   # Act
-  cache_set "${key}" "42"
+  lib_call cache revamped_cache_get "${key}"
 
   # Assert
-  [[ "$(revamped_tmux_get @test_rev_percent_ts)" == "1000000" ]]
+  [ "${output}" = "" ]
 }
 
-@test "cache.sh - cache_age is the sentinel for a never-written key" {
-  [[ "$(cache_age percent)" == "999999999" ]]
-}
-
-@test "cache.sh - cache_age reflects elapsed time" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000010
-  [[ "$(cache_age percent)" == "10" ]]
-}
-
-@test "cache.sh - cache_age returns the sentinel for a non-numeric timestamp" {
+@test "cache.sh - set stores the value and stamps the write time" {
   # Arrange
-  revamped_tmux_set @test_rev_percent_ts "garbage"
+  local key=percent
 
   # Act
-  run cache_age percent
+  lib_call cache revamped_cache_set "${key}" 42
 
   # Assert
-  [[ "${output}" == "999999999" ]]
+  [ "$(stored @test_rev_percent)" = "42" ]
+  [ "$(stored @test_rev_percent_ts)" = "1000000" ]
 }
 
-@test "cache.sh - cache_is_fresh is true within max age" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000003
-  cache_is_fresh percent 5
-}
-
-@test "cache.sh - cache_is_fresh is false beyond max age" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000010
-  ! cache_is_fresh percent 5
-}
-
-@test "cache.sh - cache_should_refresh is false when fresh" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000001
-  ! cache_should_refresh percent 5
-}
-
-@test "cache.sh - cache_should_refresh is true when stale and unlocked" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000010
-  cache_should_refresh percent 5
-}
-
-@test "cache.sh - cache_should_refresh is false when a fresh lock is held" {
-  cache_set percent "42"
-  export MOCK_EPOCH=1000010
-  cache_set percent_lock "1"
-  ! cache_should_refresh percent 5
-}
-
-@test "cache.sh - cache_should_refresh is true when the lock is stale" {
-  cache_set percent "42"
-  cache_set percent_lock "1"
-  export MOCK_EPOCH=1000030
-  cache_should_refresh percent 5
-}
-
-@test "cache.sh - cache_refresh_if_stale runs the worker when stale" {
-  cache_set percent "old"
-  export MOCK_EPOCH=1000010
-  _worker() { cache_set percent "new"; }
-  cache_refresh_if_stale percent 5 _worker
-  [[ "$(cache_get percent)" == "new" ]]
-}
-
-@test "cache.sh - cache_refresh_if_stale clears the lock after a sync run" {
-  cache_set percent "old"
-  export MOCK_EPOCH=1000010
-  _worker() { :; }
-  cache_refresh_if_stale percent 5 _worker
-  [[ "$(cache_get percent_lock)" == "0" ]]
-}
-
-@test "cache.sh - cache_refresh_if_stale is a no-op when fresh" {
-  cache_set percent "keep"
-  export MOCK_EPOCH=1000001
-  _worker() { cache_set percent "changed"; }
-  cache_refresh_if_stale percent 5 _worker
-  [[ "$(cache_get percent)" == "keep" ]]
-}
-
-@test "cache.sh - cache_render echoes the value and refreshes when stale" {
-  cache_set percent "10"
-  export MOCK_EPOCH=1000010
-  _worker() { cache_set percent "20"; }
-  run cache_render percent 5 _worker
-  [[ "${output}" == "20" ]]
-}
-
-@test "cache.sh - cache_render on cold start refreshes then echoes" {
-  export MOCK_EPOCH=1000010
-  _worker() { cache_set percent "fresh"; }
-  run cache_render percent 5 _worker
-  [[ "${output}" == "fresh" ]]
-}
-
-@test "cache.sh - _cache_spawn runs the worker in the background" {
+@test "cache.sh - age is the sentinel for a never-written key" {
   # Arrange
-  unset CACHE_SYNC
-  local marker="${TEST_TMPDIR}/ran"
-  _worker() { echo "done" >"$1"; }
+  local key=percent
 
   # Act
-  _cache_spawn percent _worker "${marker}"
+  lib_call cache revamped_cache_age "${key}"
 
   # Assert
-  local i
-  for ((i = 0; i < 50; i++)); do
-    [[ -f "${marker}" ]] && break
-    sleep 0.05
-  done
-  [[ -f "${marker}" ]]
+  [ "${output}" = "999999999" ]
 }
 
-@test "cache.sh - cache_refresh_if_stale backgrounds the worker without sync mode" {
+@test "cache.sh - age reflects elapsed time" {
   # Arrange
-  unset CACHE_SYNC
-  cache_set percent "old"
-  export MOCK_EPOCH=1000010
-  local marker="${TEST_TMPDIR}/bg"
-  _worker() { echo hi >"$1"; }
+  store @test_rev_percent_ts 1000000
+  export REVAMPED_TEST_NOW=1000010
 
   # Act
-  cache_refresh_if_stale percent 5 _worker "${marker}"
+  lib_call cache revamped_cache_age percent
 
   # Assert
-  local i
-  for ((i = 0; i < 50; i++)); do
-    [[ -f "${marker}" ]] && break
-    sleep 0.05
-  done
-  [[ -f "${marker}" ]]
+  [ "${output}" = "10" ]
 }
 
-@test "cache.sh - cache_set_if_stale keeps a fresh value" {
-  cache_set percent "keep"
-  export MOCK_EPOCH=1000003
-  _probe() { echo "changed"; }
-  cache_set_if_stale percent 5 _probe
-  [[ "$(cache_get percent)" == "keep" ]]
+@test "cache.sh - age is the sentinel for a non-numeric timestamp" {
+  # Arrange
+  store @test_rev_percent_ts garbage
+
+  # Act
+  lib_call cache revamped_cache_age percent
+
+  # Assert
+  [ "${output}" = "999999999" ]
 }
 
-@test "cache.sh - cache_set_if_stale recomputes a stale value" {
-  cache_set percent "keep"
-  export MOCK_EPOCH=1000010
-  _probe() { echo "changed"; }
-  cache_set_if_stale percent 5 _probe
-  [[ "$(cache_get percent)" == "changed" ]]
+@test "cache.sh - fresh within the max age" {
+  # Arrange
+  store @test_rev_percent_ts 1000000
+  export REVAMPED_TEST_NOW=1000003
+
+  # Act
+  lib_call cache revamped_cache_is_fresh percent 5
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "cache.sh - cache_set_if_stale computes a never-written value" {
-  _probe() { echo "fresh"; }
-  cache_set_if_stale percent 5 _probe
-  [[ "$(cache_get percent)" == "fresh" ]]
+@test "cache.sh - stale beyond the max age" {
+  # Arrange
+  store @test_rev_percent_ts 1000000
+  export REVAMPED_TEST_NOW=1000010
+
+  # Act
+  lib_call cache revamped_cache_is_fresh percent 5
+
+  # Assert
+  [ "${status}" -eq 1 ]
 }
 
-@test "cache.sh - cache_set_if_stale forwards args to the producer" {
-  export MOCK_EPOCH=1000010
-  _probe() { echo "v=${1}"; }
-  cache_set_if_stale percent 5 _probe hello
-  [[ "$(cache_get percent)" == "v=hello" ]]
+@test "cache.sh - a non-numeric max age is never fresh and never evaluated" {
+  # Arrange
+  store @test_rev_key_ts 1000000
+  local marker="${BATS_TEST_TMPDIR}/evaluated"
+
+  # Act
+  lib_call cache revamped_cache_is_fresh key "x[\$(touch ${marker})]"
+
+  # Assert
+  [ "${status}" -eq 1 ]
+  [ ! -e "${marker}" ]
+}
+
+@test "cache.sh - no refresh while fresh" {
+  # Arrange
+  store @test_rev_percent_ts 1000000
+
+  # Act
+  lib_call cache revamped_cache_should_refresh percent 5
+
+  # Assert
+  [ "${status}" -eq 1 ]
+}
+
+@test "cache.sh - refresh when stale and unlocked" {
+  # Arrange
+  local key=percent
+
+  # Act
+  lib_call cache revamped_cache_should_refresh "${key}" 5
+
+  # Assert
+  [ "${status}" -eq 0 ]
+}
+
+@test "cache.sh - no refresh while a fresh lock is held" {
+  # Arrange
+  store @test_rev_percent_lock 1
+  store @test_rev_percent_lock_ts 1000000
+  export REVAMPED_TEST_NOW=1000005
+
+  # Act
+  lib_call cache revamped_cache_should_refresh percent 1
+
+  # Assert
+  [ "${status}" -eq 1 ]
+}
+
+@test "cache.sh - refresh once the lock is older than the max run" {
+  # Arrange
+  store @test_rev_percent_lock 1
+  store @test_rev_percent_lock_ts 1000000
+  export REVAMPED_TEST_NOW=1000030
+
+  # Act
+  lib_call cache revamped_cache_should_refresh percent 1
+
+  # Assert
+  [ "${status}" -eq 0 ]
+}
+
+@test "cache.sh - a non-numeric max run falls back to the default and is never evaluated" {
+  # Arrange
+  local marker="${BATS_TEST_TMPDIR}/evaluated"
+  store @test_rev_key_lock 1
+  store @test_rev_key_lock_ts 1000000
+  export REVAMPED_TEST_NOW=1000100 REVAMPED_CACHE_MAX_RUN="x[\$(touch ${marker})]"
+
+  # Act
+  lib_call cache revamped_cache_should_refresh key 10
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ ! -e "${marker}" ]
+}
+
+@test "cache.sh - refresh runs the worker when stale and clears the lock" {
+  # Arrange
+  local script='worker() { revamped_cache_set percent fresh; }; revamped_cache_refresh_if_stale percent 5 worker'
+
+  # Act
+  lib_run cache "${script}"
+
+  # Assert
+  [ "$(stored @test_rev_percent)" = "fresh" ]
+  [ "$(stored @test_rev_percent_lock)" = "0" ]
+}
+
+@test "cache.sh - refresh does nothing while fresh" {
+  # Arrange
+  store @test_rev_percent old
+  store @test_rev_percent_ts 1000000
+
+  # Act
+  lib_run cache 'worker() { revamped_cache_set percent new; }; revamped_cache_refresh_if_stale percent 5 worker'
+
+  # Assert
+  [ "$(stored @test_rev_percent)" = "old" ]
+}
+
+@test "cache.sh - render refreshes a stale value and prints the new one" {
+  # Arrange
+  store @test_rev_percent 10
+  store @test_rev_percent_ts 1000000
+  export REVAMPED_TEST_NOW=1000010
+
+  # Act
+  lib_run cache 'worker() { revamped_cache_set percent 20; }; revamped_cache_render percent 5 worker'
+
+  # Assert
+  [ "${output}" = "20" ]
+}
+
+@test "cache.sh - render prints a fresh value without running the worker" {
+  # Arrange
+  store @test_rev_percent 10
+  store @test_rev_percent_ts 1000000
+
+  # Act
+  lib_run cache 'worker() { revamped_cache_set percent 20; }; revamped_cache_render percent 5 worker'
+
+  # Assert
+  [ "${output}" = "10" ]
+}
+
+@test "cache.sh - a background refresh runs the worker and then clears its lock" {
+  # Arrange
+  unset REVAMPED_CACHE_SYNC
+
+  # Act
+  lib_run cache 'worker() { revamped_tmux_set @test_rev_done yes; }; revamped_cache_refresh_if_stale percent 5 worker'
+
+  # Assert
+  wait_until_stored @test_rev_percent_lock 0
+  [ "$(stored @test_rev_done)" = "yes" ]
+  [ "$(stored @test_rev_percent_lock)" = "0" ]
+}
+
+@test "cache.sh - set_if_stale keeps a fresh value" {
+  # Arrange
+  store @test_rev_percent keep
+  store @test_rev_percent_ts 1000000
+
+  # Act
+  lib_run cache 'probe() { printf changed; }; revamped_cache_set_if_stale percent 5 probe'
+
+  # Assert
+  [ "$(stored @test_rev_percent)" = "keep" ]
+}
+
+@test "cache.sh - set_if_stale recomputes a stale value" {
+  # Arrange
+  store @test_rev_percent old
+  store @test_rev_percent_ts 1000000
+  export REVAMPED_TEST_NOW=1000010
+
+  # Act
+  lib_run cache 'probe() { printf new; }; revamped_cache_set_if_stale percent 5 probe'
+
+  # Assert
+  [ "$(stored @test_rev_percent)" = "new" ]
+}
+
+@test "cache.sh - set_if_stale forwards the arguments to the producer" {
+  # Arrange
+  local script='probe() { printf "%s-%s" "$1" "$2"; }; revamped_cache_set_if_stale percent 5 probe a b'
+
+  # Act
+  lib_run cache "${script}"
+
+  # Assert
+  [ "$(stored @test_rev_percent)" = "a-b" ]
 }

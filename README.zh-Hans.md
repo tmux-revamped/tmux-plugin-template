@@ -71,21 +71,21 @@
 
 状态插件加载缓存并从中渲染。状态栏立即得到保存的值，过时的值会在分离的子 shell 中重新计算：
 
-```bash
-#!/usr/bin/env bash
+```sh
+#!/bin/sh
 
-PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/lib/cache.sh"
+REVAMPED_LIB="$(cd "$(dirname "$0")/../lib" && pwd)"
+REVAMPED_CACHE_PREFIX=example_revamped
+. "${REVAMPED_LIB}/cache.sh"
 
 read_load() { uptime; }
 
-cache_render load 5 read_load
+revamped_cache_render load 5 read_load
 ```
 
 | 模块 | 函数 |
 |:-------|:----------|
-| [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
+| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用于每个服务器一个后台渲染器 |
 | [`lib/publish.sh`](lib/publish.sh) | 用于批量写入选项的 `revamped_publish_add`、`revamped_publish_commit`，把每个 `#` 加倍的 `revamped_publish_escape`，用于固定宽度的 `revamped_publish_pad` 和 `revamped_publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
@@ -109,7 +109,7 @@ cache_render load 5 read_load
 | `@<prefix>_<metric>_width` | publish | 单个值的显式宽度 |
 | `@<namespace>_enable_logging` | 错误日志 | 设为 `1` 时写入 `~/.tmux/<namespace>-logs/<namespace>.log`，超过 1 MB 后轮转 |
 
-对缓存而言，`<prefix>` 是 `CACHE_PREFIX`；对 ticker 和 publish 函数而言，是传入的参数。`<namespace>` 是把 `REVAMPED_LOG_NS` 中的 `-` 换成 `_` 的结果。
+对缓存而言，`<prefix>` 是 `REVAMPED_CACHE_PREFIX`；对 ticker 和 publish 函数而言，是传入的参数。`<namespace>` 是把 `REVAMPED_LOG_NS` 中的 `-` 换成 `_` 的结果。
 
 ## 工作原理
 
@@ -121,7 +121,7 @@ graph LR
     Ticker[后台渲染器] -->|每次运行批量写入一次| Option
 ```
 
-`cache_render` 返回保存的选项值。当该值比给定时长更旧时，它设置一个锁选项，并在分离的子 shell 中开始刷新，因此渲染永远不会等待命令。超过 20 秒的锁视为失效，因此崩溃的刷新不会阻塞下一次刷新。所有状态都在 tmux 服务器选项中，因此不会写入磁盘，服务器停止后即消失。
+`revamped_cache_render` 返回保存的选项值。当该值比给定时长更旧时，它设置一个锁选项，并在分离的子 shell 中开始刷新，因此渲染永远不会等待命令。超过 20 秒的锁视为失效，因此崩溃的刷新不会阻塞下一次刷新。所有状态都在 tmux 服务器选项中，因此不会写入磁盘，服务器停止后即消失。
 
 对于占位符运行频繁的插件，`ticker_run` 为每个服务器保留一个后台进程。它占用 `@<prefix>_ticker_pid`，每次运行时通过一次 tmux 调用读取所需的全部选项，渲染后再通过一次调用写入所有值和重绘，并在另一个进程占用该选项或服务器停止时退出。
 

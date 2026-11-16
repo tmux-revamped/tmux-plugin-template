@@ -71,21 +71,21 @@
 
 ステータスプラグインはキャッシュを読み込み、そこから描画します。ステータスラインは保存済みの値をすぐに受け取り、古い値は切り離したサブシェルで計算し直します。
 
-```bash
-#!/usr/bin/env bash
+```sh
+#!/bin/sh
 
-PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/lib/cache.sh"
+REVAMPED_LIB="$(cd "$(dirname "$0")/../lib" && pwd)"
+REVAMPED_CACHE_PREFIX=example_revamped
+. "${REVAMPED_LIB}/cache.sh"
 
 read_load() { uptime; }
 
-cache_render load 5 read_load
+revamped_cache_render load 5 read_load
 ```
 
 | モジュール | 関数 |
 |:-------|:----------|
-| [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
+| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
 | [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`revamped_publish_add`、`revamped_publish_commit`、すべての`#`を二重にする`revamped_publish_escape`、固定幅のための`revamped_publish_pad`と`revamped_publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
@@ -109,7 +109,7 @@ cache_render load 5 read_load
 | `@<prefix>_<metric>_width` | publish | 1つの値の幅を直接指定 |
 | `@<namespace>_enable_logging` | エラーログ | `1`で`~/.tmux/<namespace>-logs/<namespace>.log`に書き込み、1 MBを超えるとローテーション |
 
-`<prefix>`は、キャッシュでは`CACHE_PREFIX`、tickerとpublishの関数では渡した引数です。`<namespace>`は`REVAMPED_LOG_NS`の`-`を`_`に置き換えたものです。
+`<prefix>`は、キャッシュでは`REVAMPED_CACHE_PREFIX`、tickerとpublishの関数では渡した引数です。`<namespace>`は`REVAMPED_LOG_NS`の`-`を`_`に置き換えたものです。
 
 ## 仕組み
 
@@ -121,7 +121,7 @@ graph LR
     Ticker[バックグラウンド描画] -->|1 回ごとにまとめて書き込み| Option
 ```
 
-`cache_render`は保存済みのオプションの値を返します。値が指定した経過時間より古ければ、ロックのオプションを設定し、切り離したサブシェルで更新を始めるので、描画がコマンドを待つことはありません。20秒より古いロックは無効とみなすので、異常終了した更新が次の更新を妨げることはありません。状態はすべてtmuxサーバーのオプションにあるので、ディスクには何も書かず、サーバーが止まれば消えます。
+`revamped_cache_render`は保存済みのオプションの値を返します。値が指定した経過時間より古ければ、ロックのオプションを設定し、切り離したサブシェルで更新を始めるので、描画がコマンドを待つことはありません。20秒より古いロックは無効とみなすので、異常終了した更新が次の更新を妨げることはありません。状態はすべてtmuxサーバーのオプションにあるので、ディスクには何も書かず、サーバーが止まれば消えます。
 
 プレースホルダーが頻繁に実行されるプラグインでは、`ticker_run`がサーバーごとに1つのバックグラウンドプロセスを保ちます。このプロセスは`@<prefix>_ticker_pid`を取得し、1回ごとに必要なオプションを1回のtmux呼び出しですべて読み、描画し、すべての値と再描画をもう1回の呼び出しで書き込み、別のプロセスがこのオプションを取得するかサーバーが止まると終了します。
 

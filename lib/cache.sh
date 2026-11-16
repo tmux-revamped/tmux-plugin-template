@@ -1,122 +1,104 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_CACHE_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_CACHE_LOADED=1
+[ -n "${REVAMPED_CACHE_LOADED:-}" ] && return 0
+REVAMPED_CACHE_LOADED=1
 
-_CACHE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-source "${_CACHE_SCRIPT_DIR}/tmux.sh"
+# shellcheck source=SCRIPTDIR/tmux.sh
+. "${REVAMPED_LIB:?}/tmux.sh"
 
-CACHE_PREFIX="${CACHE_PREFIX:-tmux_plugin}"
-CACHE_MAX_RUN_DEFAULT=20
-CACHE_MAX_RUN="${CACHE_MAX_RUN:-${CACHE_MAX_RUN_DEFAULT}}"
-CACHE_NEVER_AGE=999999999
+REVAMPED_CACHE_PREFIX="${REVAMPED_CACHE_PREFIX:-tmux_plugin}"
+REVAMPED_CACHE_MAX_RUN_DEFAULT=20
+REVAMPED_CACHE_MAX_RUN="${REVAMPED_CACHE_MAX_RUN:-${REVAMPED_CACHE_MAX_RUN_DEFAULT}}"
+REVAMPED_CACHE_NEVER_AGE=999999999
 
-_cache_now() {
-  date +%s 2>/dev/null || echo 0
+revamped_cache_now() {
+  date +%s 2>/dev/null || printf '0\n'
 }
 
-_cache_opt() {
-  echo "@${CACHE_PREFIX}_${1}"
+revamped_cache_is_number() {
+  case "$1" in
+  '' | *[!0-9]*) return 1 ;;
+  *) return 0 ;;
+  esac
 }
 
-cache_get() {
-  revamped_tmux_get "$(_cache_opt "${1}")" ""
+revamped_cache_get() {
+  revamped_tmux_get "@${REVAMPED_CACHE_PREFIX}_$1"
 }
 
-cache_set() {
-  local key="${1}"
-  revamped_tmux_set "$(_cache_opt "${key}")" "${2}"
-  revamped_tmux_set "$(_cache_opt "${key}_ts")" "$(_cache_now)"
+revamped_cache_set() {
+  revamped_tmux_set "@${REVAMPED_CACHE_PREFIX}_$1" "$2"
+  revamped_cache_set_now=$(revamped_cache_now)
+  revamped_tmux_set "@${REVAMPED_CACHE_PREFIX}_$1_ts" "${revamped_cache_set_now}"
 }
 
-cache_age() {
-  local ts
-  ts=$(revamped_tmux_get "$(_cache_opt "${1}_ts")" "")
-  if [[ -z "${ts}" || ! "${ts}" =~ ^[0-9]+$ ]]; then
-    echo "${CACHE_NEVER_AGE}"
+revamped_cache_measure() {
+  revamped_cache_measure_ts=$(revamped_tmux_get "@${REVAMPED_CACHE_PREFIX}_$1_ts")
+  if ! revamped_cache_is_number "${revamped_cache_measure_ts}"; then
+    revamped_cache_measure_age="${REVAMPED_CACHE_NEVER_AGE}"
     return 0
   fi
-  local now
-  now=$(_cache_now)
-  echo "$((now - ts))"
+  revamped_cache_measure_now=$(revamped_cache_now)
+  revamped_cache_measure_age=$((revamped_cache_measure_now - revamped_cache_measure_ts))
 }
 
-cache_is_fresh() {
-  local max_age="${2:-}"
-  [[ "${max_age}" =~ ^[0-9]+$ ]] || return 1
-  local age
-  age=$(cache_age "${1}")
-  ((age <= max_age))
+revamped_cache_age() {
+  revamped_cache_measure "$1"
+  printf '%s\n' "${revamped_cache_measure_age}"
 }
 
-_cache_clear_lock() {
-  revamped_tmux_set "$(_cache_opt "${1}_lock")" "0"
+revamped_cache_is_fresh() {
+  revamped_cache_is_number "${2:-}" || return 1
+  revamped_cache_measure "$1"
+  [ "${revamped_cache_measure_age}" -le "$2" ]
 }
 
-cache_should_refresh() {
-  local key="${1}" max_age="${2}"
-  cache_is_fresh "${key}" "${max_age}" && return 1
-  if [[ "$(cache_get "${key}_lock")" == "1" ]]; then
-    local lock_age max_run="${CACHE_MAX_RUN}"
-    [[ "${max_run}" =~ ^[0-9]+$ ]] || max_run="${CACHE_MAX_RUN_DEFAULT}"
-    lock_age=$(cache_age "${key}_lock")
-    ((lock_age < max_run)) && return 1
-  fi
-  return 0
+revamped_cache_clear_lock() {
+  revamped_tmux_set "@${REVAMPED_CACHE_PREFIX}_$1_lock" 0
 }
 
-cache_refresh_if_stale() {
-  local key="${1}" max_age="${2}"
-  shift 2
-  cache_should_refresh "${key}" "${max_age}" || return 0
-
-  cache_set "${key}_lock" "1"
-
-  if [[ -n "${CACHE_SYNC:-}" ]]; then
-    "$@"
-    _cache_clear_lock "${key}"
-    return 0
-  fi
-
-  _cache_spawn "${key}" "$@"
-  return 0
+revamped_cache_should_refresh() {
+  revamped_cache_is_fresh "$1" "$2" && return 1
+  revamped_cache_should_refresh_lock=$(revamped_cache_get "$1_lock")
+  [ "${revamped_cache_should_refresh_lock}" = 1 ] || return 0
+  revamped_cache_should_refresh_limit="${REVAMPED_CACHE_MAX_RUN}"
+  revamped_cache_is_number "${revamped_cache_should_refresh_limit}" || revamped_cache_should_refresh_limit="${REVAMPED_CACHE_MAX_RUN_DEFAULT}"
+  revamped_cache_measure "$1_lock"
+  [ "${revamped_cache_measure_age}" -ge "${revamped_cache_should_refresh_limit}" ]
 }
 
-_cache_spawn() {
-  local key="${1}"
-  shift
+revamped_cache_spawn() {
   (
-    trap '_cache_clear_lock "'"${key}"'"' EXIT
+    revamped_cache_spawn_key="$1"
+    trap 'revamped_cache_clear_lock "${revamped_cache_spawn_key}"' EXIT
+    shift
     "$@"
-  ) >/dev/null 2>&1 &
-  disown 2>/dev/null || true
+  ) </dev/null >/dev/null 2>&1 &
 }
 
-cache_render() {
-  local key="${1}" max_age="${2}"
+revamped_cache_refresh_if_stale() {
+  revamped_cache_refresh_if_stale_key="$1"
+  revamped_cache_should_refresh "$1" "$2" || return 0
   shift 2
-  cache_refresh_if_stale "${key}" "${max_age}" "$@"
-  cache_get "${key}"
+  revamped_cache_set "${revamped_cache_refresh_if_stale_key}_lock" 1
+  if [ -n "${REVAMPED_CACHE_SYNC:-}" ]; then
+    "$@"
+    revamped_cache_clear_lock "${revamped_cache_refresh_if_stale_key}"
+    return 0
+  fi
+  revamped_cache_spawn "${revamped_cache_refresh_if_stale_key}" "$@"
 }
 
-cache_set_if_stale() {
-  local key="${1}" max_age="${2}"
+revamped_cache_render() {
+  revamped_cache_render_key="$1"
+  revamped_cache_refresh_if_stale "$@"
+  revamped_cache_get "${revamped_cache_render_key}"
+}
+
+revamped_cache_set_if_stale() {
+  revamped_cache_is_fresh "$1" "$2" && return 0
+  revamped_cache_set_if_stale_key="$1"
   shift 2
-  cache_is_fresh "${key}" "${max_age}" && return 0
-  cache_set "${key}" "$("$@")"
-  return 0
+  revamped_cache_set_if_stale_value=$("$@")
+  revamped_cache_set "${revamped_cache_set_if_stale_key}" "${revamped_cache_set_if_stale_value}"
 }
-
-export -f _cache_now
-export -f _cache_opt
-export -f cache_get
-export -f cache_set
-export -f cache_age
-export -f cache_is_fresh
-export -f _cache_clear_lock
-export -f cache_should_refresh
-export -f cache_refresh_if_stale
-export -f _cache_spawn
-export -f cache_render
-export -f cache_set_if_stale

@@ -330,12 +330,15 @@ stub_ticker_tmux() {
 }
 
 @test "ticker - install reads the clock from EPOCHSECONDS when bash has it" {
+  # Arrange
   stub_ticker_tmux
   EPOCHSECONDS="${EPOCHSECONDS:-1700000000}"
 
+  # Act
   ticker_install demo
 
-  [[ "$(declare -f _cache_now)" == *'EPOCHSECONDS'* ]]
+  # Assert
+  [[ "$(declare -f revamped_cache_now)" == *'EPOCHSECONDS'* ]]
 }
 
 @test "ticker - unexport keeps functions defined but out of the environment" {

@@ -71,21 +71,21 @@ Every file [`FAMILY.md`](FAMILY.md) lists as identical stays the same in every m
 
 A status plugin sources the cache and renders from it. The status line gets the stored value at once, and a stale value is recomputed in a detached subshell:
 
-```bash
-#!/usr/bin/env bash
+```sh
+#!/bin/sh
 
-PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export CACHE_PREFIX="example_revamped"
-source "${PLUGIN_DIR}/lib/cache.sh"
+REVAMPED_LIB="$(cd "$(dirname "$0")/../lib" && pwd)"
+REVAMPED_CACHE_PREFIX=example_revamped
+. "${REVAMPED_LIB}/cache.sh"
 
 read_load() { uptime; }
 
-cache_render load 5 read_load
+revamped_cache_render load 5 read_load
 ```
 
 | Module | Functions |
 |:-------|:----------|
-| [`lib/cache.sh`](lib/cache.sh) | `cache_render`, `cache_get`, `cache_set`, `cache_age`, `cache_is_fresh`, `cache_refresh_if_stale`, `cache_set_if_stale` |
+| [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`, `revamped_cache_get`, `revamped_cache_set`, `revamped_cache_age`, `revamped_cache_is_fresh`, `revamped_cache_refresh_if_stale`, `revamped_cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
 | [`lib/publish.sh`](lib/publish.sh) | `revamped_publish_add`, `revamped_publish_commit` for batched option writes, `revamped_publish_escape` to double every `#`, `revamped_publish_pad` and `revamped_publish_width` for fixed widths |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
@@ -109,7 +109,7 @@ The template binds no key and reads no option of its own. The library reads thes
 | `@<prefix>_<metric>_width` | publish | explicit width for one value |
 | `@<namespace>_enable_logging` | error log | `1` writes to `~/.tmux/<namespace>-logs/<namespace>.log`, rotated past 1 MB |
 
-`<prefix>` is `CACHE_PREFIX` for the cache and the argument passed to the ticker and publish functions. `<namespace>` is `REVAMPED_LOG_NS` with `-` turned into `_`.
+`<prefix>` is `REVAMPED_CACHE_PREFIX` for the cache and the argument passed to the ticker and publish functions. `<namespace>` is `REVAMPED_LOG_NS` with `-` turned into `_`.
 
 ## How it works
 
@@ -121,7 +121,7 @@ graph LR
     Ticker[background renderer] -->|one batched write per tick| Option
 ```
 
-`cache_render` returns the stored option value. When the value is older than the age it was given, it sets a lock option and starts the refresh in a detached subshell, so a render never waits on the command. A lock older than 20 seconds counts as dead, so a refresh that crashed does not block the next one. All state is in tmux server options, so nothing is written to disk and it is gone when the server stops.
+`revamped_cache_render` returns the stored option value. When the value is older than the age it was given, it sets a lock option and starts the refresh in a detached subshell, so a render never waits on the command. A lock older than 20 seconds counts as dead, so a refresh that crashed does not block the next one. All state is in tmux server options, so nothing is written to disk and it is gone when the server stops.
 
 For plugins whose placeholders run often, `ticker_run` keeps one background process per server. It claims `@<prefix>_ticker_pid`, reads every option it needs in one tmux call per tick, renders, writes all values and the redraw in one more call, and exits when another process claims the option or the server stops.
 
