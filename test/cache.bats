@@ -38,8 +38,14 @@ teardown() {
 }
 
 @test "cache.sh - cache_set stamps the write time" {
-  cache_set percent "42"
-  [[ "$(get_tmux_option @test_rev_percent_ts)" == "1000000" ]]
+  # Arrange
+  local key=percent
+
+  # Act
+  cache_set "${key}" "42"
+
+  # Assert
+  [[ "$(revamped_tmux_get @test_rev_percent_ts)" == "1000000" ]]
 }
 
 @test "cache.sh - cache_age is the sentinel for a never-written key" {
@@ -53,8 +59,14 @@ teardown() {
 }
 
 @test "cache.sh - cache_age returns the sentinel for a non-numeric timestamp" {
-  set_tmux_option @test_rev_percent_ts "garbage"
-  [[ "$(cache_age percent)" == "999999999" ]]
+  # Arrange
+  revamped_tmux_set @test_rev_percent_ts "garbage"
+
+  # Act
+  run cache_age percent
+
+  # Assert
+  [[ "${output}" == "999999999" ]]
 }
 
 @test "cache.sh - cache_is_fresh is true within max age" {

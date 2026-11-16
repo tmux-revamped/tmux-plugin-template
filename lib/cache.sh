@@ -21,18 +21,18 @@ _cache_opt() {
 }
 
 cache_get() {
-  get_tmux_option "$(_cache_opt "${1}")" ""
+  revamped_tmux_get "$(_cache_opt "${1}")" ""
 }
 
 cache_set() {
   local key="${1}"
-  set_tmux_option "$(_cache_opt "${key}")" "${2}"
-  set_tmux_option "$(_cache_opt "${key}_ts")" "$(_cache_now)"
+  revamped_tmux_set "$(_cache_opt "${key}")" "${2}"
+  revamped_tmux_set "$(_cache_opt "${key}_ts")" "$(_cache_now)"
 }
 
 cache_age() {
   local ts
-  ts=$(get_tmux_option "$(_cache_opt "${1}_ts")" "")
+  ts=$(revamped_tmux_get "$(_cache_opt "${1}_ts")" "")
   if [[ -z "${ts}" || ! "${ts}" =~ ^[0-9]+$ ]]; then
     echo "${CACHE_NEVER_AGE}"
     return 0
@@ -51,7 +51,7 @@ cache_is_fresh() {
 }
 
 _cache_clear_lock() {
-  set_tmux_option "$(_cache_opt "${1}_lock")" "0"
+  revamped_tmux_set "$(_cache_opt "${1}_lock")" "0"
 }
 
 cache_should_refresh() {

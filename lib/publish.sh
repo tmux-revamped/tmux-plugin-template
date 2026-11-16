@@ -35,10 +35,10 @@ publish_pad() {
 
 publish_width() {
   local prefix="${1}" metric="${2}" natural="${3:-0}" own
-  own="$(get_tmux_option "@${prefix}_${metric}_width" "")"
+  own="$(revamped_tmux_get "@${prefix}_${metric}_width" "")"
   if [[ "${own}" =~ ^[0-9]+$ ]]; then
     printf '%s' "${own}"
-  elif [[ "$(get_tmux_option "@${prefix}_fixed_width" "off")" == "on" ]]; then
+  elif [[ "$(revamped_tmux_get "@${prefix}_fixed_width" "off")" == "on" ]]; then
     printf '%s' "${natural}"
   else
     printf '0'

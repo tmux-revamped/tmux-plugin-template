@@ -318,11 +318,14 @@ stub_ticker_tmux() {
 }
 
 @test "ticker - install routes option reads through the snapshot" {
+  # Arrange
   stub_ticker_tmux
   ticker_install demo
 
-  run get_tmux_option "@alpha" ""
+  # Act
+  run revamped_tmux_get "@alpha" ""
 
+  # Assert
   [[ "${output}" == "one" ]]
 }
 

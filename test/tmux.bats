@@ -1,286 +1,215 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  source "${BATS_TEST_DIRNAME}/../lib/tmux.sh"
+  harness_setup
 }
 
-teardown() {
-  cleanup_test_environment
-}
-
-@test "tmux-ops.sh - functions are defined" {
-  function_exists get_tmux_option
-  function_exists set_tmux_option
-  function_exists unset_tmux_option
-}
-
-@test "tmux-ops.sh - get_tmux_option returns the default when unset" {
-  [[ "$(get_tmux_option @nope fallback)" == "fallback" ]]
-}
-
-@test "tmux-ops.sh - get_tmux_option returns empty when no default is given" {
-  [[ -z "$(get_tmux_option @missing)" ]]
-}
-
-@test "tmux-ops.sh - set then get round-trips the value" {
-  set_tmux_option @foo bar
-  [[ "$(get_tmux_option @foo)" == "bar" ]]
-}
-
-@test "tmux-ops.sh - a stored value overrides the default" {
-  set_tmux_option @foo bar
-  [[ "$(get_tmux_option @foo other)" == "bar" ]]
-}
-
-@test "tmux-ops.sh - unset removes the option" {
-  set_tmux_option @foo bar
-  unset_tmux_option @foo
-  [[ -z "$(get_tmux_option @foo)" ]]
-}
-
-@test "tmux-ops.sh - the window and pane helpers are defined" {
-  function_exists get_window_option
-  function_exists get_pane_option
-  function_exists set_window_option
-  function_exists set_pane_option
-}
-
-@test "tmux-ops.sh - the geometry helpers are defined" {
-  function_exists get_current_pane
-  function_exists get_current_window
-  function_exists get_pane_count
-  function_exists get_pane_width
-  function_exists get_pane_height
-  function_exists get_window_width
-  function_exists get_window_height
-  function_exists get_window_panes
-}
-
-@test "tmux-ops.sh - a window option round-trips and falls back" {
-  [[ "$(get_window_option @win fallback)" == "fallback" ]]
-  set_window_option @win value
-
-  [[ "$(get_window_option @win)" == "value" ]]
-}
-
-@test "tmux-ops.sh - a pane option round-trips with and without a target" {
-  [[ "$(get_pane_option @pane fallback)" == "fallback" ]]
-  set_pane_option @pane value
-  [[ "$(get_pane_option @pane)" == "value" ]]
-
-  set_pane_option @pane other "%1"
-  [[ -n "$(get_pane_option @pane '' '%1')" ]]
-}
-
-use_recording_tmux() {
-  TMUX_CALLS="${TEST_TMPDIR}/tmux-calls"
-  : >"${TMUX_CALLS}"
-  tmux() {
-    printf '%s\n' "$*" >>"${TMUX_CALLS}"
-    case "${1}" in
-    list-panes) printf '%%1: [80x24]\n%%2: [80x24]\n' ;;
-    display-message) printf '42\n' ;;
-    esac
-    return 0
-  }
-}
-
-@test "tmux-ops.sh - get_current_pane asks for the pane id" {
+@test "tmux.sh - get returns the default for an unset option" {
   # Arrange
-  use_recording_tmux
+  local option=@absent
 
   # Act
-  run get_current_pane
+  lib_call tmux revamped_tmux_get "${option}" fallback
 
   # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{pane_id}" ]
+  [ "${status}" -eq 0 ]
+  [ "${output}" = "fallback" ]
+  [ "$(tmux_calls)" = "$(printf 'show-option -gqv @absent\nshow-option -gq @absent')" ]
 }
 
-@test "tmux-ops.sh - get_current_window asks for the window id" {
+@test "tmux.sh - get returns a set value with one query" {
   # Arrange
-  use_recording_tmux
+  tmux set-option -gq @set value
 
   # Act
-  run get_current_window
+  lib_call tmux revamped_tmux_get @set fallback
 
   # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{window_id}" ]
+  [ "${output}" = "value" ]
+  [ "$(tmux_calls | tail -n 1)" = "show-option -gqv @set" ]
 }
 
-@test "tmux-ops.sh - get_pane_count counts the listed panes" {
+@test "tmux.sh - get keeps an option explicitly set to empty" {
   # Arrange
-  use_recording_tmux
+  tmux set-option -gq @empty ""
 
   # Act
-  run get_pane_count
-
-  # Assert
-  [ "${output}" = "2" ]
-  [ "$(cat "${TMUX_CALLS}")" = "list-panes" ]
-}
-
-@test "tmux-ops.sh - get_pane_width without a target reads the current pane" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_pane_width
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{pane_width}" ]
-}
-
-@test "tmux-ops.sh - get_pane_width passes the target pane" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_pane_width "%1"
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p -t %1 #{pane_width}" ]
-}
-
-@test "tmux-ops.sh - get_pane_height without a target reads the current pane" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_pane_height
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{pane_height}" ]
-}
-
-@test "tmux-ops.sh - get_pane_height passes the target pane" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_pane_height "%1"
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p -t %1 #{pane_height}" ]
-}
-
-@test "tmux-ops.sh - get_window_width asks for the window width" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_window_width
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{window_width}" ]
-}
-
-@test "tmux-ops.sh - get_window_height asks for the window height" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_window_height
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{window_height}" ]
-}
-
-@test "tmux-ops.sh - get_window_panes asks for the pane count" {
-  # Arrange
-  use_recording_tmux
-
-  # Act
-  run get_window_panes
-
-  # Assert
-  [ "${output}" = "42" ]
-  [ "$(cat "${TMUX_CALLS}")" = "display-message -p #{window_panes}" ]
-}
-
-@test "tmux-ops.sh - a failing display-message falls back to zero" {
-  # Arrange
-  tmux() { return 1; }
-
-  # Act
-  run get_pane_width "%1"
-
-  # Assert
-  [ "${output}" = "0" ]
-}
-
-use_option_server() {
-  TMUX_CALLS="${TEST_TMPDIR}/tmux-calls"
-  : >"${TMUX_CALLS}"
-  tmux() {
-    printf '%s\n' "$*" >>"${TMUX_CALLS}"
-    [ "${1}" = "show-option" ] || return 0
-    case "${3}" in
-    @empty)
-      if [ "${2}" = "-gqv" ]; then printf '\n'; else printf '@empty ""\n'; fi
-      ;;
-    @set)
-      if [ "${2}" = "-gqv" ]; then printf 'value\n'; else printf '@set value\n'; fi
-      ;;
-    esac
-    return 0
-  }
-}
-
-@test "tmux-ops.sh - get_tmux_option keeps an option explicitly set to empty" {
-  # Arrange
-  use_option_server
-
-  # Act
-  run get_tmux_option @empty fallback
+  lib_call tmux revamped_tmux_get @empty fallback
 
   # Assert
   [ "${status}" -eq 0 ]
   [ "${output}" = "" ]
 }
 
-@test "tmux-ops.sh - get_tmux_option returns the default for an unset option" {
+@test "tmux.sh - get with no default queries once" {
   # Arrange
-  use_option_server
+  local option=@absent
 
   # Act
-  run get_tmux_option @absent fallback
-
-  # Assert
-  [ "${output}" = "fallback" ]
-  [ "$(cat "${TMUX_CALLS}")" = "$(printf 'show-option -gqv @absent\nshow-option -gq @absent')" ]
-}
-
-@test "tmux-ops.sh - get_tmux_option returns a set value with one query" {
-  # Arrange
-  use_option_server
-
-  # Act
-  run get_tmux_option @set fallback
-
-  # Assert
-  [ "${output}" = "value" ]
-  [ "$(cat "${TMUX_CALLS}")" = "show-option -gqv @set" ]
-}
-
-@test "tmux-ops.sh - get_tmux_option with no default queries once" {
-  # Arrange
-  use_option_server
-
-  # Act
-  run get_tmux_option @absent
+  lib_call tmux revamped_tmux_get "${option}"
 
   # Assert
   [ "${output}" = "" ]
-  [ "$(cat "${TMUX_CALLS}")" = "show-option -gqv @absent" ]
+  [ "$(tmux_calls)" = "show-option -gqv @absent" ]
+}
+
+@test "tmux.sh - set then get round-trips the value" {
+  # Arrange
+  lib_call tmux revamped_tmux_set @foo bar
+
+  # Act
+  lib_call tmux revamped_tmux_get @foo other
+
+  # Assert
+  [ "${output}" = "bar" ]
+}
+
+@test "tmux.sh - unset removes the option" {
+  # Arrange
+  tmux set-option -gq @foo bar
+
+  # Act
+  lib_call tmux revamped_tmux_unset @foo
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ -z "$(tmux show-option -gqv @foo)" ]
+}
+
+@test "tmux.sh - a window option round-trips and falls back" {
+  # Arrange
+  lib_call tmux revamped_tmux_set_window @win value
+
+  # Act
+  lib_call tmux revamped_tmux_get_window @win fallback
+
+  # Assert
+  [ "${output}" = "value" ]
+}
+
+@test "tmux.sh - an unset window option falls back to the default" {
+  # Arrange
+  local option=@win
+
+  # Act
+  lib_call tmux revamped_tmux_get_window "${option}" fallback
+
+  # Assert
+  [ "${output}" = "fallback" ]
+}
+
+@test "tmux.sh - a pane option round-trips without a target" {
+  # Arrange
+  lib_call tmux revamped_tmux_set_pane @pane value
+
+  # Act
+  lib_call tmux revamped_tmux_get_pane @pane fallback
+
+  # Assert
+  [ "${output}" = "value" ]
+}
+
+@test "tmux.sh - a pane option round-trips with a target" {
+  # Arrange
+  lib_call tmux revamped_tmux_set_pane @pane other %1
+
+  # Act
+  lib_call tmux revamped_tmux_get_pane @pane fallback %1
+
+  # Assert
+  [ "${output}" = "other" ]
+  [ "$(tmux_calls | tail -n 1)" = "show-option -pqv -t %1 @pane" ]
+}
+
+@test "tmux.sh - current pane asks for the pane id" {
+  # Arrange
+  tmux_answer '#{pane_id}' %3
+
+  # Act
+  lib_call tmux revamped_tmux_current_pane
+
+  # Assert
+  [ "${output}" = "%3" ]
+  [ "$(tmux_calls)" = "display-message -p #{pane_id}" ]
+}
+
+@test "tmux.sh - current window asks for the window id" {
+  # Arrange
+  tmux_answer '#{window_id}' @2
+
+  # Act
+  lib_call tmux revamped_tmux_current_window
+
+  # Assert
+  [ "${output}" = "@2" ]
+}
+
+@test "tmux.sh - pane count reads the window's pane count" {
+  # Arrange
+  tmux_answer '#{window_panes}' 2
+
+  # Act
+  lib_call tmux revamped_tmux_pane_count
+
+  # Assert
+  [ "${output}" = "2" ]
+  [ "$(tmux_calls)" = "display-message -p #{window_panes}" ]
+}
+
+@test "tmux.sh - pane width passes the target pane" {
+  # Arrange
+  tmux_answer '#{pane_width}' 80 %1
+
+  # Act
+  lib_call tmux revamped_tmux_pane_width %1
+
+  # Assert
+  [ "${output}" = "80" ]
+  [ "$(tmux_calls)" = "display-message -p -t %1 #{pane_width}" ]
+}
+
+@test "tmux.sh - pane height without a target reads the current pane" {
+  # Arrange
+  tmux_answer '#{pane_height}' 24
+
+  # Act
+  lib_call tmux revamped_tmux_pane_height
+
+  # Assert
+  [ "${output}" = "24" ]
+}
+
+@test "tmux.sh - window width reads the window" {
+  # Arrange
+  tmux_answer '#{window_width}' 200
+
+  # Act
+  lib_call tmux revamped_tmux_window_width
+
+  # Assert
+  [ "${output}" = "200" ]
+}
+
+@test "tmux.sh - window height reads the window" {
+  # Arrange
+  tmux_answer '#{window_height}' 50
+
+  # Act
+  lib_call tmux revamped_tmux_window_height
+
+  # Assert
+  [ "${output}" = "50" ]
+}
+
+@test "tmux.sh - a failing display-message falls back to zero" {
+  # Arrange
+  export REVAMPED_TEST_TMUX_FAIL=1
+
+  # Act
+  lib_call tmux revamped_tmux_pane_width %1
+
+  # Assert
+  [ "${output}" = "0" ]
 }

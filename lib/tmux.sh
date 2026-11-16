@@ -1,119 +1,88 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_TMUX_OPS_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_TMUX_OPS_LOADED=1
+[ -n "${REVAMPED_TMUX_LOADED:-}" ] && return 0
+REVAMPED_TMUX_LOADED=1
 
-get_tmux_option() {
-  local option="${1}"
-  local default="${2:-}"
-  local value
-  value=$(tmux show-option -gqv "${option}" 2>/dev/null)
-  if [[ -n "${value}" || -z "${default}" ]]; then
-    echo "${value}"
+revamped_tmux_get() {
+  revamped_tmux_get_value=$(tmux show-option -gqv "$1" 2>/dev/null)
+  if [ -n "${revamped_tmux_get_value}" ] || [ -z "${2:-}" ]; then
+    printf '%s\n' "${revamped_tmux_get_value}"
     return 0
   fi
-  if [[ -n "$(tmux show-option -gq "${option}" 2>/dev/null)" ]]; then
-    echo ""
+  revamped_tmux_get_line=$(tmux show-option -gq "$1" 2>/dev/null)
+  if [ -n "${revamped_tmux_get_line}" ]; then
+    printf '\n'
     return 0
   fi
-  echo "${default}"
+  printf '%s\n' "$2"
 }
 
-set_tmux_option() {
-  tmux set-option -gq "${1}" "${2}" 2>/dev/null
+revamped_tmux_set() {
+  tmux set-option -gq "$1" "$2" 2>/dev/null
 }
 
-get_window_option() {
-  local option="${1}"
-  local default="${2:-}"
-  local value
-  value=$(tmux show-option -wqv "${option}" 2>/dev/null)
-  [[ -z "${value}" ]] && echo "${default}" || echo "${value}"
+revamped_tmux_unset() {
+  tmux set-option -gqu "$1" 2>/dev/null
 }
 
-get_pane_option() {
-  local option="${1}"
-  local default="${2:-}"
-  local pane="${3:-}"
-  local value
-  if [[ -n "${pane}" ]]; then
-    value=$(tmux show-option -pqv -t "${pane}" "${option}" 2>/dev/null)
+revamped_tmux_get_window() {
+  revamped_tmux_get_window_value=$(tmux show-option -wqv "$1" 2>/dev/null)
+  printf '%s\n' "${revamped_tmux_get_window_value:-${2:-}}"
+}
+
+revamped_tmux_set_window() {
+  tmux set-option -wq "$1" "$2" 2>/dev/null
+}
+
+revamped_tmux_get_pane() {
+  if [ -n "${3:-}" ]; then
+    revamped_tmux_get_pane_value=$(tmux show-option -pqv -t "$3" "$1" 2>/dev/null)
   else
-    value=$(tmux show-option -pqv "${option}" 2>/dev/null)
+    revamped_tmux_get_pane_value=$(tmux show-option -pqv "$1" 2>/dev/null)
   fi
-  [[ -z "${value}" ]] && echo "${default}" || echo "${value}"
+  printf '%s\n' "${revamped_tmux_get_pane_value:-${2:-}}"
 }
 
-set_window_option() {
-  tmux set-option -wq "${1}" "${2}" 2>/dev/null
-}
-
-set_pane_option() {
-  if [[ -n "${3:-}" ]]; then
-    tmux set-option -pq -t "${3}" "${1}" "${2}" 2>/dev/null
+revamped_tmux_set_pane() {
+  if [ -n "${3:-}" ]; then
+    tmux set-option -pq -t "$3" "$1" "$2" 2>/dev/null
   else
-    tmux set-option -pq "${1}" "${2}" 2>/dev/null
+    tmux set-option -pq "$1" "$2" 2>/dev/null
   fi
 }
 
-get_current_pane() {
-  tmux display-message -p '#{pane_id}' 2>/dev/null || echo ""
-}
-
-get_current_window() {
-  tmux display-message -p '#{window_id}' 2>/dev/null || echo ""
-}
-
-get_pane_count() {
-  tmux list-panes 2>/dev/null | wc -l | tr -d ' '
-}
-
-get_pane_width() {
-  local pane="${1:-}"
-  if [[ -n "${pane}" ]]; then
-    tmux display-message -p -t "${pane}" '#{pane_width}' 2>/dev/null || echo "0"
+revamped_tmux_display() {
+  if [ -n "${2:-}" ]; then
+    tmux display-message -p -t "$2" "$1" 2>/dev/null || printf '%s\n' "${3:-}"
   else
-    tmux display-message -p '#{pane_width}' 2>/dev/null || echo "0"
+    tmux display-message -p "$1" 2>/dev/null || printf '%s\n' "${3:-}"
   fi
 }
 
-get_pane_height() {
-  local pane="${1:-}"
-  if [[ -n "${pane}" ]]; then
-    tmux display-message -p -t "${pane}" '#{pane_height}' 2>/dev/null || echo "0"
-  else
-    tmux display-message -p '#{pane_height}' 2>/dev/null || echo "0"
-  fi
+revamped_tmux_current_pane() {
+  revamped_tmux_display '#{pane_id}'
 }
 
-get_window_width() {
-  tmux display-message -p '#{window_width}' 2>/dev/null || echo "0"
+revamped_tmux_current_window() {
+  revamped_tmux_display '#{window_id}'
 }
 
-get_window_height() {
-  tmux display-message -p '#{window_height}' 2>/dev/null || echo "0"
+revamped_tmux_pane_count() {
+  revamped_tmux_display '#{window_panes}' '' 0
 }
 
-get_window_panes() {
-  tmux display-message -p '#{window_panes}' 2>/dev/null || echo "0"
+revamped_tmux_pane_width() {
+  revamped_tmux_display '#{pane_width}' "${1:-}" 0
 }
 
-unset_tmux_option() {
-  tmux set-option -gqu "${1}" 2>/dev/null
+revamped_tmux_pane_height() {
+  revamped_tmux_display '#{pane_height}' "${1:-}" 0
 }
 
-export -f get_tmux_option
-export -f set_tmux_option
-export -f unset_tmux_option
-export -f get_window_option
-export -f get_pane_option
-export -f set_window_option
-export -f set_pane_option
-export -f get_current_pane
-export -f get_current_window
-export -f get_pane_count
-export -f get_pane_width
-export -f get_pane_height
-export -f get_window_width
-export -f get_window_height
-export -f get_window_panes
+revamped_tmux_window_width() {
+  revamped_tmux_display '#{window_width}' '' 0
+}
+
+revamped_tmux_window_height() {
+  revamped_tmux_display '#{window_height}' '' 0
+}

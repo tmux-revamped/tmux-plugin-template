@@ -24,7 +24,7 @@ notify_backend() {
 }
 
 notify_enabled() {
-  [[ "$(get_tmux_option "${1}" "0")" == "1" ]]
+  [[ "$(revamped_tmux_get "${1}" "0")" == "1" ]]
 }
 
 notify_send() {

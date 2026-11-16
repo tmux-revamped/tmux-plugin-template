@@ -71,28 +71,37 @@ logged_words() {
 }
 
 @test "publish - fixed width uses the natural maximum" {
-  set_tmux_option "@cpu_revamped_fixed_width" "on"
+  # Arrange
+  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
 
+  # Act
   run publish_width cpu_revamped percentage 4
 
+  # Assert
   [[ "${output}" == "4" ]]
 }
 
 @test "publish - a metric width overrides fixed width" {
-  set_tmux_option "@cpu_revamped_fixed_width" "on"
-  set_tmux_option "@cpu_revamped_percentage_width" "3"
+  # Arrange
+  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
+  revamped_tmux_set "@cpu_revamped_percentage_width" "3"
 
+  # Act
   run publish_width cpu_revamped percentage 4
 
+  # Assert
   [[ "${output}" == "3" ]]
 }
 
 @test "publish - a non-numeric metric width falls back to fixed width" {
-  set_tmux_option "@cpu_revamped_fixed_width" "on"
-  set_tmux_option "@cpu_revamped_percentage_width" "wide"
+  # Arrange
+  revamped_tmux_set "@cpu_revamped_fixed_width" "on"
+  revamped_tmux_set "@cpu_revamped_percentage_width" "wide"
 
+  # Act
   run publish_width cpu_revamped percentage 4
 
+  # Assert
   [[ "${output}" == "4" ]]
 }
 

@@ -88,7 +88,7 @@ cache_render load 5 read_load
 | [`lib/cache.sh`](lib/cache.sh) | `cache_render`、`cache_get`、`cache_set`、`cache_age`、`cache_is_fresh`、`cache_refresh_if_stale`、`cache_set_if_stale` |
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用于每个服务器一个后台渲染器 |
 | [`lib/publish.sh`](lib/publish.sh) | 用于批量写入选项的 `publish_add`、`publish_commit`，把每个 `#` 加倍的 `publish_escape`，用于固定宽度的 `publish_pad` 和 `publish_width` |
-| [`lib/tmux.sh`](lib/tmux.sh) | `get_tmux_option`、`set_tmux_option`、`unset_tmux_option`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
+| [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
 | [`lib/platform.sh`](lib/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`，每个进程只计算一次 |
 | [`lib/command.sh`](lib/command.sh) | `has_command` |
 | [`lib/log.sh`](lib/log.sh) | `log_error` |

@@ -151,8 +151,8 @@ ticker_install() {
   TICKER_PREFIX="${1}"
   TICKER_MAIN_PID="${BASHPID:-}"
   ticker_unexport_functions
-  get_tmux_option() { ticker_get_option "$@"; }
-  set_tmux_option() { ticker_set_option "$@"; }
+  revamped_tmux_get() { ticker_get_option "$@"; }
+  revamped_tmux_set() { ticker_set_option "$@"; }
   if [[ -n "${EPOCHSECONDS:-}" ]]; then
     _cache_now() { printf '%s\n' "${EPOCHSECONDS}"; }
   fi
