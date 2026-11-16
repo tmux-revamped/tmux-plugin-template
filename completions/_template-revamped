@@ -1,0 +1,20 @@
+#compdef template-revamped
+
+_template_revamped() {
+  local -a commands
+  commands=(
+    'doctor:check this machine'
+    'version:print the version'
+    'help:print the help page'
+  )
+
+  _arguments \
+    '--theme[colours of the terminal interface]:theme:(kodougu catppuccin-mocha catppuccin-latte dracula nord gruvbox tokyo-night mono)' \
+    '1:command:->command'
+
+  if [[ "${state}" == command ]]; then
+    _describe 'command' commands
+  fi
+}
+
+_template_revamped "$@"

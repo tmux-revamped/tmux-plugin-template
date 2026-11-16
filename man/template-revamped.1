@@ -1,0 +1,83 @@
+.TH TEMPLATE-REVAMPED 1 "2026-11-16" "template-revamped" "User Commands"
+.SH NAME
+template-revamped \- the starting point for a tmux-revamped plugin
+.SH SYNOPSIS
+.B template-revamped
+.RB [ \-\-theme
+.IR name ]
+.B doctor
+.br
+.B template-revamped version
+.br
+.B template-revamped help
+.SH DESCRIPTION
+.B template-revamped
+is the command every tmux-revamped plugin starts from. It binds no key and
+draws no placeholder, and it answers the three commands every member answers.
+.PP
+Run with no command on a terminal, it offers a menu.
+.SH COMMANDS
+.TP
+.B doctor
+Print one row per dependency: tmux, gum, the desktop notifier and the core
+tools, each with its path and, for a core tool, its flavor and version.
+Exits 1 only when a required tool is missing.
+.TP
+.B version
+Print the version, then the tmux version.
+.TP
+.B help
+Print the help page.
+.SH OPTIONS
+.TP
+.BI \-\-theme " name"
+Colours of the terminal interface:
+.BR kodougu ,
+.BR catppuccin\-mocha ,
+.BR catppuccin\-latte ,
+.BR dracula ,
+.BR nord ,
+.BR gruvbox ,
+.B tokyo\-night
+or
+.BR mono .
+The default is
+.BR kodougu .
+.PP
+The option also takes the form
+.IR \-\-theme = name .
+.SH ENVIRONMENT
+.TP
+.B TEMPLATE_REVAMPED_THEME
+The theme when
+.B \-\-theme
+is not given.
+.TP
+.B TEMPLATE_REVAMPED_ACCENT
+A colour such as #CBA6F7 that replaces the accent of the theme.
+.TP
+.B KODOUGU_THEME
+The theme of every kodougu and tmux-revamped tool, when neither
+.B \-\-theme
+nor
+.B TEMPLATE_REVAMPED_THEME
+is set.
+.TP
+.B KODOUGU_ACCENT
+The accent of every kodougu and tmux-revamped tool, when
+.B TEMPLATE_REVAMPED_ACCENT
+is not set.
+.TP
+.B NO_COLOR
+Turns colour off in every theme.
+.SH TMUX OPTIONS
+.TP
+.B @revamped_theme
+The theme of every tmux-revamped tool, when nothing else sets one. The default
+is
+.BR kodougu .
+.SH EXIT STATUS
+0 on success, 1 on any failure.
+.SH SEE ALSO
+.BR tmux (1),
+.BR gum (1)

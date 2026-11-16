@@ -15,7 +15,7 @@ docker run --rm \
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq >/dev/null
     apt-get install -y -qq --no-install-recommends \
-      bats dash zsh tmux git python3 ca-certificates >/dev/null
+      bats dash zsh tmux git python3 make ca-certificates >/dev/null
     git config --global --add safe.directory /repo
     exec "$@"
   ' sh "$@"

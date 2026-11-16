@@ -89,11 +89,11 @@ jobs:
           echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint.tar.gz" | sha256sum -c -
           tar -xzf actionlint.tar.gz actionlint
           sudo install -m 755 actionlint /usr/local/bin/actionlint
-      - name: Install yamllint
+      - name: Install yamllint, mandoc and zsh
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq yamllint
+          sudo apt-get install -y -qq yamllint mandoc zsh
       - name: Lint at zero findings
         run: make lint
 

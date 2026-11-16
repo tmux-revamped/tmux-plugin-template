@@ -7,12 +7,23 @@ case "${template_revamped_self}" in
 */*) ;;
 *) template_revamped_self="$(command -v -- "${template_revamped_self}")" ;;
 esac
-REVAMPED_LIB="$(cd "${template_revamped_self%/*}/../lib" && pwd)" || exit 1
+template_revamped_lib="$(cd "${template_revamped_self%/*}/../lib" && pwd)" || exit 1
+for template_revamped_inherited in $(env | sed -n 's/^\(REVAMPED_[A-Za-z0-9_]*\)=.*/\1/p'); do
+  case "${template_revamped_inherited}" in
+  REVAMPED_TEST_*) ;;
+  *) unset "${template_revamped_inherited}" ;;
+  esac
+done
+REVAMPED_LIB="${template_revamped_lib}"
 
 # shellcheck source=SCRIPTDIR/../lib/core.sh
 . "${REVAMPED_LIB}/core.sh"
 # shellcheck disable=SC2034
 REVAMPED_UI_NAME=template-revamped REVAMPED_UI_VERSION="${TMUX_PLUGIN_TEMPLATE_VERSION}" REVAMPED_UI_TAGLINE="the starting point for a tmux-revamped plugin"
+if [ -n "${TEMPLATE_REVAMPED_ACCENT:-}" ]; then
+  # shellcheck disable=SC2034
+  REVAMPED_UI_ACCENT_CHOICE="${TEMPLATE_REVAMPED_ACCENT}" REVAMPED_UI_ACCENT_NAME=TEMPLATE_REVAMPED_ACCENT
+fi
 # shellcheck source=SCRIPTDIR/../lib/cli.sh
 . "${REVAMPED_LIB}/cli.sh"
 # shellcheck source=SCRIPTDIR/../lib/doctor.sh
@@ -32,9 +43,11 @@ options:
                  dracula, nord, gruvbox, tokyo-night or mono
 
 environment:
-  TEMPLATE_REVAMPED_THEME   the look, when --theme is not given
-  KODOUGU_THEME             the family look, when neither is given
-  NO_COLOR                  turn colour off
+  TEMPLATE_REVAMPED_THEME    the look, when --theme is not given
+  TEMPLATE_REVAMPED_ACCENT   a colour such as #CBA6F7 for the accent
+  KODOUGU_THEME              the family look, when neither is given
+  KODOUGU_ACCENT             the family accent, when the tool's is unset
+  NO_COLOR                   turn colour off
 
 tmux options:
   @revamped_theme   the family look, when nothing else sets it (default kodougu)

@@ -6,7 +6,7 @@ source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
-  unset KODOUGU_THEME KODOUGU_ACCENT NO_COLOR TEMPLATE_REVAMPED_THEME
+  unset KODOUGU_THEME KODOUGU_ACCENT NO_COLOR TEMPLATE_REVAMPED_THEME TEMPLATE_REVAMPED_ACCENT
   export REVAMPED_TEST_GUM_LOG="${BATS_TEST_TMPDIR}/gum.log"
   : >"${REVAMPED_TEST_GUM_LOG}"
 }
@@ -386,4 +386,53 @@ answers() {
   # Assert
   [[ "${status}" -eq 0 ]]
   [[ "${lines[0]}" == template-revamped\ * ]]
+}
+
+@test "cli - an inherited internal variable is ignored" {
+  # Arrange
+  export REVAMPED_UI_THEME=solarized REVAMPED_UI_NAME=impostor
+
+  # Act
+  tool version
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  [[ "${lines[0]}" == template-revamped\ * ]]
+}
+
+@test "cli - the tool's accent variable colours the header" {
+  # Arrange
+  export REVAMPED_TEST_GUM=1 TEMPLATE_REVAMPED_ACCENT="#112233" KODOUGU_ACCENT="#445566"
+  answers Help
+
+  # Act
+  tool
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  grep -q -- '--foreground #112233 --bold -- template-revamped' "${REVAMPED_TEST_GUM_LOG}"
+}
+
+@test "cli - KODOUGU_ACCENT colours the header when the tool's accent is unset" {
+  # Arrange
+  export REVAMPED_TEST_GUM=1 KODOUGU_ACCENT="#445566"
+  answers Help
+
+  # Act
+  tool
+
+  # Assert
+  grep -q -- '--foreground #445566 --bold -- template-revamped' "${REVAMPED_TEST_GUM_LOG}"
+}
+
+@test "cli - a malformed accent is a bad value" {
+  # Arrange
+  export TEMPLATE_REVAMPED_ACCENT=purple
+
+  # Act
+  tool version
+
+  # Assert
+  [[ "${status}" -eq 1 ]]
+  [[ "${output}" == "template-revamped: TEMPLATE_REVAMPED_ACCENT must be a colour such as #CBA6F7, got: purple" ]]
 }
