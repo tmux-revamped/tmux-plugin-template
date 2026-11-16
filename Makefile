@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux')
-POSIX_SCRIPTS = $(shell git ls-files -- 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*')
+POSIX_SCRIPTS = $(shell git ls-files -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*')
 TEST_SCRIPTS = $(shell git ls-files -- 'test/*.bash' 'test/*.bats')
 
 .PHONY: help fmt lint test test-all test-linux coverage check clean
@@ -36,9 +36,9 @@ test-linux:
 	sh test/linux-container.sh sh test/run-matrix.sh
 
 coverage:
-	sh scripts/coverage.sh 0 && cp -f coverage/.resultset.json coverage-macos.json
+	sh scripts/coverage.sh && cp -f coverage/.resultset.json coverage-macos.json
 	sh test/linux-container.sh sh scripts/linux-coverage.sh
-	python3 scripts/coverage-gate.py '/lib/[a-z]+\.sh\Z' 100 coverage-macos.json coverage-linux.json
+	python3 scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' 100 coverage-macos.json coverage-linux.json
 
 check: lint test
 

@@ -101,6 +101,6 @@ revamped_cache_set_if_stale() {
   revamped_cache_is_fresh "$1" "$2" && return 0
   revamped_cache_set_if_stale_key="$1"
   shift 2
-  revamped_cache_set_if_stale_value=$("$@")
+  revamped_cache_set_if_stale_value=$("$@") || revamped_cache_set_if_stale_value=""
   revamped_cache_set "${revamped_cache_set_if_stale_key}" "${revamped_cache_set_if_stale_value}"
 }

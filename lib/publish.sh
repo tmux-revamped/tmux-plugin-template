@@ -118,7 +118,7 @@ revamped_publish_add() {
 
 revamped_publish_commit() {
   [ "${REVAMPED_PUBLISH_PENDING}" -gt 0 ] || return 0
-  revamped_publish_commit_clients=$(tmux list-clients -F '#{client_name}' 2>/dev/null)
+  revamped_publish_commit_clients=$(tmux list-clients -F '#{client_name}' 2>/dev/null) || revamped_publish_commit_clients=""
   while IFS= read -r revamped_publish_commit_client; do
     [ -n "${revamped_publish_commit_client}" ] && revamped_publish_push ';' refresh-client -S -t "${revamped_publish_commit_client}"
   done <<EOF

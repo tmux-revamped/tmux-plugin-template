@@ -28,6 +28,7 @@ lib_run() {
 harness_hide() {
   local farm="${BATS_TEST_TMPDIR}/farm" dir name
   mkdir -p "${farm}"
+  ln -s "${REVAMPED_TESTS_DIR}/bin"/* "${farm}/"
   local IFS=:
   for dir in ${PATH}; do
     [[ -d "${dir}" ]] || continue
@@ -38,7 +39,7 @@ harness_hide() {
   for name in "$@"; do
     rm -f "${farm:?}/${name}"
   done
-  PATH="${BATS_TEST_TMPDIR}/stubs:${REVAMPED_TESTS_DIR}/bin:${farm}"
+  PATH="${BATS_TEST_TMPDIR}/stubs:${farm}"
 }
 
 stub_command() {

@@ -1,0 +1,107 @@
+#!/bin/sh
+[ -n "${ZSH_VERSION:-}" ] && emulate sh
+set -eu
+
+template_revamped_self="$0"
+case "${template_revamped_self}" in
+*/*) ;;
+*) template_revamped_self="$(command -v -- "${template_revamped_self}")" ;;
+esac
+REVAMPED_LIB="$(cd "${template_revamped_self%/*}/../lib" && pwd)" || exit 1
+
+# shellcheck source=SCRIPTDIR/../lib/core.sh
+. "${REVAMPED_LIB}/core.sh"
+# shellcheck disable=SC2034
+REVAMPED_UI_NAME=template-revamped REVAMPED_UI_VERSION="${TMUX_PLUGIN_TEMPLATE_VERSION}" REVAMPED_UI_TAGLINE="the starting point for a tmux-revamped plugin"
+# shellcheck source=SCRIPTDIR/../lib/cli.sh
+. "${REVAMPED_LIB}/cli.sh"
+# shellcheck source=SCRIPTDIR/../lib/doctor.sh
+. "${REVAMPED_LIB}/doctor.sh"
+
+template_revamped_help() {
+  revamped_cli_help_page <<'HELP'
+template-revamped - the starting point for a tmux-revamped plugin
+
+usage:
+  template-revamped doctor    check this machine
+  template-revamped version   print the version
+  template-revamped help      print this page
+
+options:
+  --theme NAME   the look: kodougu, catppuccin-mocha, catppuccin-latte,
+                 dracula, nord, gruvbox, tokyo-night or mono
+
+environment:
+  TEMPLATE_REVAMPED_THEME   the look, when --theme is not given
+  KODOUGU_THEME             the family look, when neither is given
+  NO_COLOR                  turn colour off
+
+tmux options:
+  @revamped_theme   the family look, when nothing else sets it (default kodougu)
+
+notes:
+  The template binds no key and draws no placeholder. Every tmux-revamped
+  plugin starts from it and answers the same three commands.
+
+examples:
+  template-revamped doctor
+  template-revamped --theme nord help
+HELP
+}
+
+template_revamped_version() {
+  template_revamped_tmux=$(tmux -V 2>/dev/null) || template_revamped_tmux=missing
+  printf '%s %s\n' "${REVAMPED_UI_NAME}" "${TMUX_PLUGIN_TEMPLATE_VERSION}"
+  printf 'tmux: %s\n' "${template_revamped_tmux#tmux }"
+}
+
+template_revamped_doctor() {
+  revamped_doctor_tmux
+  revamped_doctor_gum
+  revamped_doctor_notifier
+  revamped_doctor_core_tools awk sed tr date stat
+  revamped_doctor_finish
+  [ "${REVAMPED_DOCTOR_MISSING}" -eq 0 ] || exit 1
+}
+
+template_revamped_dispatch() {
+  case "${1:-}" in
+  doctor) template_revamped_doctor ;;
+  version | --version | -V) template_revamped_version ;;
+  help | --help | -h) template_revamped_help ;;
+  "")
+    revamped_cli_require_terminal
+    template_revamped_choice=$(revamped_cli_menu "Check this machine" "Help")
+    case "${template_revamped_choice}" in
+    "Check this machine") template_revamped_doctor ;;
+    *) template_revamped_help ;;
+    esac
+    ;;
+  -*) revamped_cli_usage_error "unknown option '$1'" ;;
+  *) revamped_cli_usage_error "unknown command '$1'" ;;
+  esac
+}
+
+template_revamped_main() {
+  template_revamped_theme="${TEMPLATE_REVAMPED_THEME:-}"
+  template_revamped_count=$#
+  while [ "${template_revamped_count}" -gt 0 ]; do
+    template_revamped_arg="$1"
+    shift
+    template_revamped_count=$((template_revamped_count - 1))
+    case "${template_revamped_arg}" in
+    --theme=*) template_revamped_theme="${template_revamped_arg#--theme=}" ;;
+    --theme)
+      [ "${template_revamped_count}" -gt 0 ] || revamped_cli_usage_error "option '--theme' needs a value"
+      template_revamped_theme="$1"
+      shift
+      template_revamped_count=$((template_revamped_count - 1))
+      ;;
+    *) set -- "$@" "${template_revamped_arg}" ;;
+    esac
+  done
+  revamped_cli_start "${template_revamped_theme}"
+  template_revamped_dispatch "$@"
+}
+
+template_revamped_main "$@"

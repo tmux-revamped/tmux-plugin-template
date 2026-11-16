@@ -31,7 +31,7 @@ revamped_ticker_claim() {
 }
 
 revamped_ticker_seconds_to_next_minute() {
-  revamped_ticker_seconds_second=$(date +%S 2>/dev/null)
+  revamped_ticker_seconds_second=$(date +%S 2>/dev/null) || revamped_ticker_seconds_second=""
   revamped_ticker_seconds_second="${revamped_ticker_seconds_second#0}"
   case "${revamped_ticker_seconds_second}" in
   '' | *[!0-9]*) revamped_ticker_seconds_second=0 ;;
@@ -43,7 +43,7 @@ revamped_ticker_seconds_to_next_minute() {
 revamped_ticker_interval() {
   revamped_ticker_interval_value=""
   if [ -n "${1:-}" ]; then
-    revamped_ticker_interval_value=$(tmux show-option -gqv "@$1_interval" 2>/dev/null)
+    revamped_ticker_interval_value=$(tmux show-option -gqv "@$1_interval" 2>/dev/null) || revamped_ticker_interval_value=""
   fi
   [ -n "${revamped_ticker_interval_value}" ] || revamped_ticker_interval_value="${2:-}"
   if [ "${revamped_ticker_interval_value}" = minute ]; then
@@ -51,7 +51,7 @@ revamped_ticker_interval() {
     return 0
   fi
   if ! revamped_ticker_is_count "${revamped_ticker_interval_value}"; then
-    revamped_ticker_interval_value=$(tmux show-option -gqv status-interval 2>/dev/null)
+    revamped_ticker_interval_value=$(tmux show-option -gqv status-interval 2>/dev/null) || revamped_ticker_interval_value=""
   fi
   revamped_ticker_is_count "${revamped_ticker_interval_value}" || revamped_ticker_interval_value="${REVAMPED_TICKER_DEFAULT_INTERVAL}"
   printf '%s' "${revamped_ticker_interval_value}"
@@ -83,7 +83,7 @@ revamped_ticker_store() {
 
 revamped_ticker_get_option() {
   if ! revamped_ticker_find "$1"; then
-    REVAMPED_TICKER_FOUND=$(tmux show-option -gqv "$1" 2>/dev/null)
+    REVAMPED_TICKER_FOUND=$(tmux show-option -gqv "$1" 2>/dev/null) || REVAMPED_TICKER_FOUND=""
     revamped_ticker_store "$1" "${REVAMPED_TICKER_FOUND}"
     tmux set-option -gqa "@${REVAMPED_TICKER_PREFIX}_option_names" " $1" 2>/dev/null
   fi
@@ -101,7 +101,7 @@ revamped_ticker_set_option() {
 
 revamped_ticker_prefetch() {
   REVAMPED_TICKER_SNAPSHOT=""
-  revamped_ticker_prefetch_names=$(tmux show-option -gqv "@${REVAMPED_TICKER_PREFIX}_option_names" 2>/dev/null)
+  revamped_ticker_prefetch_names=$(tmux show-option -gqv "@${REVAMPED_TICKER_PREFIX}_option_names" 2>/dev/null) || revamped_ticker_prefetch_names=""
   revamped_ticker_prefetch_seen=" "
   revamped_ticker_prefetch_format=""
   for revamped_ticker_prefetch_name in ${revamped_ticker_prefetch_names}; do

@@ -83,4 +83,4 @@ fi
 REVAMPED_COVERAGE=1 REVAMPED_TEST_SHELL="${wrapper}" bats "$@" "${root}/test"
 
 cd "${root}"
-python3 scripts/coverage-gate.py '/lib/[a-z]+\.sh\Z' "${minimum}" coverage/.resultset.json
+python3 scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' "${minimum}" coverage/.resultset.json

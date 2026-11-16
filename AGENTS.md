@@ -8,6 +8,7 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 | Path | Holds |
 |:-----|:------|
+| [`bin/template-revamped`](bin/template-revamped) | The command-line tool: `help`, `version`, `doctor` and the menu |
 | [`lib/`](lib) | The shared library every member carries. Every file there except `core.sh` is identical in every member |
 | [`lib/core.sh`](lib/core.sh) | The template's version and constants |
 | [`test/`](test) | The shared library's suites, identical in every member, and the CI scripts' suites, such as [`test/recover.bats`](test/recover.bats) |
@@ -18,7 +19,7 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 - The template has no tmux options, placeholders or keys of its own.
 - Its constants carry `TMUX_PLUGIN_`, and the version constant is `TMUX_PLUGIN_TEMPLATE_VERSION`.
-- Its command-line tool, once it exists, is `template-revamped`.
+- Its command-line tool is `template-revamped`, and its environment setting is `TEMPLATE_REVAMPED_THEME`.
 
 ## Behaviour
 
@@ -37,13 +38,11 @@ Guidance for anyone, human or agent, changing tmux-plugin-template. What it is a
 
 ## Gaps against FAMILY.md
 
-As of 2026-11-15:
+As of 2026-11-16:
 
-- There is no `bin/template-revamped`.
-- No `template-revamped` command with `help`, `version` and `doctor` in the family's form, no man page, no completions and no `manifest.json`.
+- No man page, no completions and no `manifest.json`, so the help page is written by hand.
 - No `make new-member NAME=<name>` scaffold.
-- No gum interface: no `lib/ui.sh`, `lib/table.awk`, themes or `test/bin/gum`.
 - No `screens/`: no VHS recording of each feature, no on-screen caption of the keys each recording presses, and no recordings in the README.
 - The README sections are not the family's order of Quick start, Usage, topic sections, Portability, Development and License.
 - No golden transcripts.
-- The Makefile has no `screens` or `install` target, and `make lint` runs no `mandoc -T lint`, since there is no command, man page or screen yet.
+- The Makefile has no `screens` or `install` target, and `make lint` runs no `mandoc -T lint`, since there is no man page or screen yet.

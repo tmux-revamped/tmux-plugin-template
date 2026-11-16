@@ -17,6 +17,10 @@ key() {
   printf '%s/%s' "${store}" "${key_name}"
 }
 
+if [ "${1:-}" = -V ]; then
+  printf 'tmux %s\n' "${REVAMPED_TEST_TMUX_VERSION:-3.6}"
+  exit 0
+fi
 verb="${1:-}"
 [ "$#" -gt 0 ] && shift
 scope=g
