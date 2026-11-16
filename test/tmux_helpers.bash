@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PLUGIN_DIR="${BATS_TEST_DIRNAME}"
-while [[ "${PLUGIN_DIR}" != "/" ]] && [[ ! -d "${PLUGIN_DIR}/src" ]]; do
+while [[ "${PLUGIN_DIR}" != "/" ]] && [[ ! -d "${PLUGIN_DIR}/lib" ]]; do
   PLUGIN_DIR="$(dirname "${PLUGIN_DIR}")"
 done
 

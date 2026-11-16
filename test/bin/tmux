@@ -22,6 +22,7 @@ verb="${1:-}"
 scope=g
 target=-
 unset_option=0
+append=0
 value_only=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -33,6 +34,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in *w*) scope=w ;; *p*) scope=p ;; *) ;; esac
     case "$1" in *u*) unset_option=1 ;; *) ;; esac
     case "$1" in *v*) value_only=1 ;; *) ;; esac
+    case "$1" in *a*) append=1 ;; *) ;; esac
     shift
     ;;
   *) break ;;
@@ -44,6 +46,8 @@ set-option)
   file="$(key "${scope}.${target}.$1")"
   if [ "${unset_option}" = 1 ]; then
     rm -f "${file}"
+  elif [ "${append}" = 1 ]; then
+    printf '%s' "${2:-}" >>"${file}"
   else
     printf '%s' "${2:-}" >"${file}"
   fi

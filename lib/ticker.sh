@@ -1,179 +1,162 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_TICKER_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_TICKER_LOADED=1
+[ -n "${REVAMPED_TICKER_LOADED:-}" ] && return 0
+REVAMPED_TICKER_LOADED=1
 
-TICKER_MAX_TICKS="${TICKER_MAX_TICKS:-100000}"
-TICKER_DEFAULT_INTERVAL=5
-TICKER_SEP=$'\x1f'
-TICKER_PREFIX=""
-TICKER_FOUND=""
-TICKER_MAIN_PID=""
-TICKER_OPT_NAMES=()
-TICKER_OPT_VALUES=()
-TICKER_OPT_COUNT=0
+# shellcheck source=SCRIPTDIR/tmux.sh
+. "${REVAMPED_LIB:?}/tmux.sh"
 
-_ticker_tmux() { tmux "$@"; }
-_ticker_sleep() { sleep "${1}"; }
-_ticker_spawn() {
-  nohup "${1}" daemon </dev/null >/dev/null 2>&1 &
-  disown 2>/dev/null || true
+REVAMPED_TICKER_MAX_TICKS="${REVAMPED_TICKER_MAX_TICKS:-100000}"
+REVAMPED_TICKER_DEFAULT_INTERVAL=5
+REVAMPED_TICKER_SEP=$(printf '\037')
+REVAMPED_TICKER_RECORD=$(printf '\036')
+REVAMPED_TICKER_PREFIX=""
+REVAMPED_TICKER_SNAPSHOT=""
+REVAMPED_TICKER_FOUND=""
+
+revamped_ticker_is_count() {
+  case "$1" in
+  '' | *[!0-9]* | 0) return 1 ;;
+  *) return 0 ;;
+  esac
 }
 
-ticker_owner() {
-  _ticker_tmux show-option -gqv "@${1}_ticker_pid" 2>/dev/null
+revamped_ticker_owns() {
+  revamped_ticker_owns_pid=$(tmux show-option -gqv "@$1_ticker_pid" 2>/dev/null) || return 1
+  [ "${revamped_ticker_owns_pid}" = "$2" ]
 }
 
-ticker_claim() {
-  _ticker_tmux set-option -gq "@${1}_ticker_pid" "${2}" 2>/dev/null
+revamped_ticker_claim() {
+  tmux set-option -gq "@$1_ticker_pid" "$2" 2>/dev/null
 }
 
-ticker_owns() {
-  [[ "$(ticker_owner "${1}")" == "${2}" ]]
+revamped_ticker_seconds_to_next_minute() {
+  revamped_ticker_seconds_second=$(date +%S 2>/dev/null)
+  revamped_ticker_seconds_second="${revamped_ticker_seconds_second#0}"
+  case "${revamped_ticker_seconds_second}" in
+  '' | *[!0-9]*) revamped_ticker_seconds_second=0 ;;
+  *) ;;
+  esac
+  printf '%s' "$((61 - revamped_ticker_seconds_second))"
 }
 
-_ticker_second_of_minute() { date +%S; }
-
-ticker_seconds_to_next_minute() {
-  local second
-  second="$(_ticker_second_of_minute)"
-  [[ "${second}" =~ ^[0-9]+$ ]] || second=0
-  printf '%s' "$((61 - 10#${second}))"
-}
-
-ticker_interval() {
-  local prefix="${1:-}" fallback="${2:-}" interval=""
-  if [[ -n "${prefix}" ]]; then
-    interval="$(_ticker_tmux show-option -gqv "@${prefix}_interval" 2>/dev/null)"
+revamped_ticker_interval() {
+  revamped_ticker_interval_value=""
+  if [ -n "${1:-}" ]; then
+    revamped_ticker_interval_value=$(tmux show-option -gqv "@$1_interval" 2>/dev/null)
   fi
-  [[ -n "${interval}" ]] || interval="${fallback}"
-  if [[ "${interval}" == "minute" ]]; then
-    ticker_seconds_to_next_minute
+  [ -n "${revamped_ticker_interval_value}" ] || revamped_ticker_interval_value="${2:-}"
+  if [ "${revamped_ticker_interval_value}" = minute ]; then
+    revamped_ticker_seconds_to_next_minute
     return 0
   fi
-  if [[ ! "${interval}" =~ ^[0-9]+$ ]] || ((interval < 1)); then
-    interval="$(_ticker_tmux show-option -gqv status-interval 2>/dev/null)"
+  if ! revamped_ticker_is_count "${revamped_ticker_interval_value}"; then
+    revamped_ticker_interval_value=$(tmux show-option -gqv status-interval 2>/dev/null)
   fi
-  if [[ ! "${interval}" =~ ^[0-9]+$ ]] || ((interval < 1)); then
-    interval="${TICKER_DEFAULT_INTERVAL}"
-  fi
-  printf '%s' "${interval}"
+  revamped_ticker_is_count "${revamped_ticker_interval_value}" || revamped_ticker_interval_value="${REVAMPED_TICKER_DEFAULT_INTERVAL}"
+  printf '%s' "${revamped_ticker_interval_value}"
 }
 
-ticker_option_find() {
-  local i
-  for ((i = 0; i < TICKER_OPT_COUNT; i++)); do
-    if [[ "${TICKER_OPT_NAMES[i]}" == "${1}" ]]; then
-      TICKER_FOUND="${TICKER_OPT_VALUES[i]}"
-      return 0
-    fi
-  done
-  return 1
+revamped_ticker_find() {
+  case "${REVAMPED_TICKER_SNAPSHOT}" in
+  *"${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}"*)
+    REVAMPED_TICKER_FOUND="${REVAMPED_TICKER_SNAPSHOT#*"${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}"}"
+    REVAMPED_TICKER_FOUND="${REVAMPED_TICKER_FOUND%%"${REVAMPED_TICKER_RECORD}"*}"
+    return 0
+    ;;
+  *) return 1 ;;
+  esac
 }
 
-ticker_option_store() {
-  local i
-  for ((i = 0; i < TICKER_OPT_COUNT; i++)); do
-    if [[ "${TICKER_OPT_NAMES[i]}" == "${1}" ]]; then
-      TICKER_OPT_VALUES[i]="${2}"
-      return 0
-    fi
-  done
-  TICKER_OPT_NAMES[TICKER_OPT_COUNT]="${1}"
-  TICKER_OPT_VALUES[TICKER_OPT_COUNT]="${2}"
-  TICKER_OPT_COUNT=$((TICKER_OPT_COUNT + 1))
+revamped_ticker_store() {
+  case "${REVAMPED_TICKER_SNAPSHOT}" in
+  *"${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}"*)
+    revamped_ticker_store_before="${REVAMPED_TICKER_SNAPSHOT%%"${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}"*}"
+    revamped_ticker_store_after="${REVAMPED_TICKER_SNAPSHOT#*"${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}"}"
+    revamped_ticker_store_after="${revamped_ticker_store_after#*"${REVAMPED_TICKER_RECORD}"}"
+    REVAMPED_TICKER_SNAPSHOT="${revamped_ticker_store_before}${REVAMPED_TICKER_RECORD}${revamped_ticker_store_after}"
+    ;;
+  *) ;;
+  esac
+  REVAMPED_TICKER_SNAPSHOT="${REVAMPED_TICKER_SNAPSHOT%"${REVAMPED_TICKER_RECORD}"}${REVAMPED_TICKER_RECORD}$1${REVAMPED_TICKER_SEP}$2${REVAMPED_TICKER_RECORD}"
 }
 
-ticker_get_option() {
-  local name="${1}" default="${2:-}"
-  if ! ticker_option_find "${name}"; then
-    TICKER_FOUND="$(_ticker_tmux show-option -gqv "${name}" 2>/dev/null)"
-    ticker_option_store "${name}" "${TICKER_FOUND}"
-    _ticker_tmux set-option -gqa "@${TICKER_PREFIX}_option_names" " ${name}" 2>/dev/null
+revamped_ticker_get_option() {
+  if ! revamped_ticker_find "$1"; then
+    REVAMPED_TICKER_FOUND=$(tmux show-option -gqv "$1" 2>/dev/null)
+    revamped_ticker_store "$1" "${REVAMPED_TICKER_FOUND}"
+    tmux set-option -gqa "@${REVAMPED_TICKER_PREFIX}_option_names" " $1" 2>/dev/null
   fi
-  if [[ -z "${TICKER_FOUND}" ]]; then
-    printf '%s\n' "${default}"
+  printf '%s\n' "${REVAMPED_TICKER_FOUND:-${2:-}}"
+}
+
+revamped_ticker_set_option() {
+  revamped_ticker_store "$1" "$2"
+  if [ -n "${REVAMPED_PUBLISH_LOADED:-}" ]; then
+    revamped_publish_add_raw "$1" "$2"
   else
-    printf '%s\n' "${TICKER_FOUND}"
+    tmux set-option -gq "$1" "$2" 2>/dev/null
   fi
 }
 
-ticker_in_main_shell() {
-  [[ -n "${TICKER_MAIN_PID}" && "${BASHPID:-}" == "${TICKER_MAIN_PID}" ]]
-}
-
-ticker_set_option() {
-  ticker_option_store "${1}" "${2}"
-  if ticker_in_main_shell && declare -F revamped_publish_add_raw >/dev/null; then
-    revamped_publish_add_raw "${1}" "${2}"
-  else
-    _ticker_tmux set-option -gq "${1}" "${2}" 2>/dev/null
-  fi
-}
-
-ticker_reset_options() {
-  TICKER_OPT_NAMES=()
-  TICKER_OPT_VALUES=()
-  TICKER_OPT_COUNT=0
-}
-
-ticker_prefetch() {
-  local names name seen=" " format="" values rest expected=0
-  ticker_reset_options
-  names="$(_ticker_tmux show-option -gqv "@${TICKER_PREFIX}_option_names" 2>/dev/null)"
-  for name in ${names}; do
-    case "${seen}" in *" ${name} "*) continue ;; esac
-    seen="${seen}${name} "
-    format="${format}#{${name}}${TICKER_SEP}"
-    expected=$((expected + 1))
+revamped_ticker_prefetch() {
+  REVAMPED_TICKER_SNAPSHOT=""
+  revamped_ticker_prefetch_names=$(tmux show-option -gqv "@${REVAMPED_TICKER_PREFIX}_option_names" 2>/dev/null)
+  revamped_ticker_prefetch_seen=" "
+  revamped_ticker_prefetch_format=""
+  for revamped_ticker_prefetch_name in ${revamped_ticker_prefetch_names}; do
+    case "${revamped_ticker_prefetch_seen}" in *" ${revamped_ticker_prefetch_name} "*) continue ;; *) ;; esac
+    revamped_ticker_prefetch_seen="${revamped_ticker_prefetch_seen}${revamped_ticker_prefetch_name} "
+    revamped_ticker_prefetch_format="${revamped_ticker_prefetch_format}#{${revamped_ticker_prefetch_name}}${REVAMPED_TICKER_SEP}"
   done
-  ((expected > 0)) || return 0
-  values="$(_ticker_tmux display-message -p "${format}" 2>/dev/null)" || return 0
-  rest="${values}"
-  for name in ${seen}; do
-    [[ "${rest}" == *"${TICKER_SEP}"* ]] || {
-      ticker_reset_options
+  [ -n "${revamped_ticker_prefetch_format}" ] || return 0
+  revamped_ticker_prefetch_rest=$(tmux display-message -p "${revamped_ticker_prefetch_format}" 2>/dev/null) || return 0
+  for revamped_ticker_prefetch_name in ${revamped_ticker_prefetch_seen}; do
+    case "${revamped_ticker_prefetch_rest}" in
+    *"${REVAMPED_TICKER_SEP}"*) ;;
+    *)
+      REVAMPED_TICKER_SNAPSHOT=""
       return 0
-    }
-    ticker_option_store "${name}" "${rest%%"${TICKER_SEP}"*}"
-    rest="${rest#*"${TICKER_SEP}"}"
+      ;;
+    esac
+    revamped_ticker_store "${revamped_ticker_prefetch_name}" "${revamped_ticker_prefetch_rest%%"${REVAMPED_TICKER_SEP}"*}"
+    revamped_ticker_prefetch_rest="${revamped_ticker_prefetch_rest#*"${REVAMPED_TICKER_SEP}"}"
   done
 }
 
-ticker_unexport_functions() {
-  local name
-  while IFS= read -r name; do
-    [[ -n "${name}" ]] && export -fn "${name?}"
-  done <<<"$(compgen -A function)"
-}
-
-ticker_install() {
-  TICKER_PREFIX="${1}"
-  TICKER_MAIN_PID="${BASHPID:-}"
-  ticker_unexport_functions
-  revamped_tmux_get() { ticker_get_option "$@"; }
-  revamped_tmux_set() { ticker_set_option "$@"; }
-  if [[ -n "${EPOCHSECONDS:-}" ]]; then
+# shellcheck disable=SC2329
+revamped_ticker_install() {
+  REVAMPED_TICKER_PREFIX="$1"
+  revamped_tmux_get() { revamped_ticker_get_option "$@"; }
+  revamped_tmux_set() { revamped_ticker_set_option "$@"; }
+  if [ -n "${EPOCHSECONDS:-}" ]; then
     revamped_cache_now() { printf '%s\n' "${EPOCHSECONDS}"; }
   fi
-  if declare -F revamped_platform_detect >/dev/null; then
+  if [ -n "${REVAMPED_PLATFORM_LOADED:-}" ]; then
     revamped_platform_detect
   fi
 }
 
-ticker_start() {
-  _ticker_spawn "${1}"
+revamped_ticker_start() {
+  nohup "$1" daemon </dev/null >/dev/null 2>&1 &
 }
 
-ticker_run() {
-  local prefix="${1}" tick="${2}" pid="${3}" fallback="${4:-}" count=0
-  ticker_claim "${prefix}" "${pid}"
-  ticker_install "${prefix}"
-  while ((count < TICKER_MAX_TICKS)) && ticker_owns "${prefix}" "${pid}"; do
-    ticker_prefetch
-    "${tick}"
-    _ticker_sleep "$(ticker_interval "${prefix}" "${fallback}")"
-    count=$((count + 1))
+revamped_ticker_run() {
+  revamped_ticker_run_prefix="$1"
+  revamped_ticker_run_tick="$2"
+  revamped_ticker_run_pid="$3"
+  revamped_ticker_run_fallback="${4:-}"
+  revamped_ticker_run_count=0
+  revamped_ticker_claim "${revamped_ticker_run_prefix}" "${revamped_ticker_run_pid}"
+  revamped_ticker_install "${revamped_ticker_run_prefix}"
+  while [ "${revamped_ticker_run_count}" -lt "${REVAMPED_TICKER_MAX_TICKS}" ] &&
+    revamped_ticker_owns "${revamped_ticker_run_prefix}" "${revamped_ticker_run_pid}"; do
+    revamped_ticker_prefetch
+    "${revamped_ticker_run_tick}"
+    revamped_ticker_run_sleep=$(revamped_ticker_interval "${revamped_ticker_run_prefix}" "${revamped_ticker_run_fallback}")
+    sleep "${revamped_ticker_run_sleep}"
+    revamped_ticker_run_count=$((revamped_ticker_run_count + 1))
   done
-  ((count >= TICKER_MAX_TICKS)) && ticker_owns "${prefix}" "${pid}"
+  [ "${revamped_ticker_run_count}" -ge "${REVAMPED_TICKER_MAX_TICKS}" ] &&
+    revamped_ticker_owns "${revamped_ticker_run_prefix}" "${revamped_ticker_run_pid}"
 }

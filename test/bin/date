@@ -2,6 +2,12 @@
 set -u
 
 case "${1:-}" in
++%S)
+  if [ -n "${REVAMPED_TEST_SECOND:-}" ]; then
+    printf '%s\n' "${REVAMPED_TEST_SECOND}"
+    exit 0
+  fi
+  ;;
 +%s)
   if [ -n "${REVAMPED_TEST_NOW:-}" ]; then
     printf '%s\n' "${REVAMPED_TEST_NOW}"

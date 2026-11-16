@@ -86,7 +86,7 @@ revamped_cache_render load 5 read_load
 | Module | Functions |
 |:-------|:----------|
 | [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`, `revamped_cache_get`, `revamped_cache_set`, `revamped_cache_age`, `revamped_cache_is_fresh`, `revamped_cache_refresh_if_stale`, `revamped_cache_set_if_stale` |
-| [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
+| [`lib/ticker.sh`](lib/ticker.sh) | `revamped_ticker_start`, `revamped_ticker_run`, `revamped_ticker_interval` for one background renderer per server |
 | [`lib/publish.sh`](lib/publish.sh) | `revamped_publish_add`, `revamped_publish_commit` for batched option writes, `revamped_publish_escape` to double every `#`, `revamped_publish_pad` and `revamped_publish_width` for fixed widths |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd`, `revamped_is_apple_silicon`, each computed once per process |
@@ -123,7 +123,7 @@ graph LR
 
 `revamped_cache_render` returns the stored option value. When the value is older than the age it was given, it sets a lock option and starts the refresh in a detached subshell, so a render never waits on the command. A lock older than 20 seconds counts as dead, so a refresh that crashed does not block the next one. All state is in tmux server options, so nothing is written to disk and it is gone when the server stops.
 
-For plugins whose placeholders run often, `ticker_run` keeps one background process per server. It claims `@<prefix>_ticker_pid`, reads every option it needs in one tmux call per tick, renders, writes all values and the redraw in one more call, and exits when another process claims the option or the server stops.
+For plugins whose placeholders run often, `revamped_ticker_run` keeps one background process per server. It claims `@<prefix>_ticker_pid`, reads every option it needs in one tmux call per tick, renders, writes all values and the redraw in one more call, and exits when another process claims the option or the server stops.
 
 ## Development
 

@@ -1,376 +1,363 @@
 #!/usr/bin/env bats
-# shellcheck disable=SC1090,SC2034
 
 load "${BATS_TEST_DIRNAME}/helpers.bash"
 
-TICKER_LIB="${BATS_TEST_DIRNAME}/../lib/ticker.sh"
-
 setup() {
-  setup_test_environment
-  unset _TMUX_PLUGIN_TICKER_LOADED
-  source "${TICKER_LIB}"
-  TICK_LOG="${TEST_TMPDIR}/ticks"
+  harness_setup
+  stub_command sleep
+  TICK_LOG="${BATS_TEST_TMPDIR}/ticks"
   export TICK_LOG
-  _ticker_sleep() { printf 'sleep %s\n' "${1}" >>"${TICK_LOG}"; }
 }
 
-teardown() {
-  cleanup_test_environment
-}
-
-count_ticks() {
-  if [[ -f "${TICK_LOG}" ]]; then
+ticks() {
+  if [ -f "${TICK_LOG}" ]; then
     grep -c '^tick$' "${TICK_LOG}"
   else
     printf '0'
   fi
 }
 
-record_tick() {
-  printf 'tick\n' >>"${TICK_LOG}"
+stored() {
+  tmux show-option -gqv "$1"
 }
 
-hand_over_after_two() {
-  record_tick
-  if [[ "$(count_ticks)" -ge 2 ]]; then
-    tmux set-option -gq "@demo_ticker_pid" "other"
-  fi
+store() {
+  tmux set-option -gq "$1" "$2"
 }
 
-stub_status_interval() {
-  export STUB_INTERVAL="${1}"
-  _ticker_tmux() {
-    if [[ "$*" == *"status-interval"* ]]; then
-      printf '%s' "${STUB_INTERVAL}"
-      return 0
-    fi
-    tmux "$@"
-  }
+tick_snippet() {
+  printf 'tick() { printf "tick\\n" >>"${TICK_LOG}"; }\n%s' "$1"
 }
 
 wait_for_file() {
-  local attempt
-  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    [[ -f "${1}" ]] && return 0
-    sleep 0.1
+  local tries=0
+  while [ ! -s "$1" ] && [ "${tries}" -lt 200 ]; do
+    sleep 0.01
+    tries=$((tries + 1))
   done
-  return 1
 }
 
-@test "ticker - run claims ownership for its pid" {
-  TICKER_MAX_TICKS=1
-
-  ticker_run demo record_tick 4242
-
-  [[ "$(tmux show-option -gqv @demo_ticker_pid)" == "4242" ]]
-}
-
-@test "ticker - run stops at the tick limit and reports it still owns the ticker" {
-  TICKER_MAX_TICKS=3
-
-  run ticker_run demo record_tick 4242
-
-  [ "${status}" -eq 0 ]
-  [[ "$(count_ticks)" == "3" ]]
-}
-
-@test "ticker - run stops when another ticker takes over" {
-  TICKER_MAX_TICKS=10
-
-  run ticker_run demo hand_over_after_two 4242
-
-  [ "${status}" -eq 1 ]
-  [[ "$(count_ticks)" == "2" ]]
-}
-
-@test "ticker - run stops when the server is gone" {
-  TICKER_MAX_TICKS=10
-  _ticker_tmux() { return 1; }
-
-  run ticker_run demo record_tick 4242
-
-  [ "${status}" -eq 1 ]
-  [[ "$(count_ticks)" == "0" ]]
-}
-
-@test "ticker - the interval follows status-interval" {
-  stub_status_interval 7
-
-  run ticker_interval
-
-  [[ "${output}" == "7" ]]
-}
-
-@test "ticker - a missing interval falls back to the default" {
-  run ticker_interval
-
-  [[ "${output}" == "${TICKER_DEFAULT_INTERVAL}" ]]
-}
-
-@test "ticker - a zero interval falls back to the default" {
-  stub_status_interval 0
-
-  run ticker_interval
-
-  [[ "${output}" == "${TICKER_DEFAULT_INTERVAL}" ]]
-}
-
-@test "ticker - each tick sleeps for the interval" {
-  TICKER_MAX_TICKS=2
-  stub_status_interval 3
-
-  ticker_run demo record_tick 4242
-
-  [[ "$(grep -c '^sleep 3$' "${TICK_LOG}")" == "2" ]]
-}
-
-@test "ticker - start spawns the daemon subcommand" {
+@test "ticker.sh - run claims ownership for its pid" {
   # Arrange
-  _ticker_spawn() { printf 'spawn %s\n' "${1}" >>"${TICK_LOG}"; }
+  export REVAMPED_TICKER_MAX_TICKS=1
 
   # Act
-  ticker_start "/plugin/src/demo.sh"
+  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
 
   # Assert
-  [[ "$(cat "${TICK_LOG}")" == "spawn /plugin/src/demo.sh" ]]
+  [ "$(stored @demo_ticker_pid)" = "4242" ]
 }
 
-@test "ticker - spawn runs the script with the daemon argument in the background" {
+@test "ticker.sh - run stops at the tick limit and reports it still owns the ticker" {
   # Arrange
-  local script="${TEST_TMPDIR}/demo.sh"
-  printf '#!/usr/bin/env bash\nprintf "%%s" "$1" > "%s/spawned"\n' "${TEST_TMPDIR}" >"${script}"
+  export REVAMPED_TICKER_MAX_TICKS=3
+
+  # Act
+  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ "$(ticks)" = "3" ]
+}
+
+@test "ticker.sh - run stops when another ticker takes over" {
+  # Arrange
+  export REVAMPED_TICKER_MAX_TICKS=10
+  local script='hand_over() { tick; [ "$(grep -c tick "${TICK_LOG}")" -ge 2 ] && tmux set-option -gq @demo_ticker_pid other; return 0; }; revamped_ticker_run demo hand_over 4242'
+
+  # Act
+  lib_run ticker "$(tick_snippet "${script}")"
+
+  # Assert
+  [ "${status}" -eq 1 ]
+  [ "$(ticks)" = "2" ]
+}
+
+@test "ticker.sh - run stops when the server is gone" {
+  # Arrange
+  export REVAMPED_TICKER_MAX_TICKS=10 REVAMPED_TEST_TMUX_FAIL=1
+
+  # Act
+  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+
+  # Assert
+  [ "${status}" -eq 1 ]
+  [ "$(ticks)" = "0" ]
+}
+
+@test "ticker.sh - each tick sleeps for the interval" {
+  # Arrange
+  export REVAMPED_TICKER_MAX_TICKS=2
+  store status-interval 3
+
+  # Act
+  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+
+  # Assert
+  [ "$(stub_calls sleep)" = "$(printf '3\n3')" ]
+}
+
+@test "ticker.sh - run sleeps for the plugin fallback interval" {
+  # Arrange
+  export REVAMPED_TICKER_MAX_TICKS=1
+
+  # Act
+  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242 9')"
+
+  # Assert
+  [ "$(stub_calls sleep)" = "9" ]
+}
+
+@test "ticker.sh - the interval follows status-interval" {
+  # Arrange
+  store status-interval 7
+
+  # Act
+  lib_call ticker revamped_ticker_interval
+
+  # Assert
+  [ "${output}" = "7" ]
+}
+
+@test "ticker.sh - a missing interval falls back to the default" {
+  # Arrange
+  local prefix=demo
+
+  # Act
+  lib_call ticker revamped_ticker_interval "${prefix}"
+
+  # Assert
+  [ "${output}" = "5" ]
+}
+
+@test "ticker.sh - a zero interval falls back to the default" {
+  # Arrange
+  store status-interval 0
+
+  # Act
+  lib_call ticker revamped_ticker_interval
+
+  # Assert
+  [ "${output}" = "5" ]
+}
+
+@test "ticker.sh - a plugin interval option wins over the fallback" {
+  # Arrange
+  store @demo_interval 11
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo 9
+
+  # Assert
+  [ "${output}" = "11" ]
+}
+
+@test "ticker.sh - the fallback applies when the plugin sets no interval" {
+  # Arrange
+  local fallback=9
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo "${fallback}"
+
+  # Assert
+  [ "${output}" = "9" ]
+}
+
+@test "ticker.sh - an invalid plugin interval falls back to status-interval" {
+  # Arrange
+  store @demo_interval soon
+  store status-interval 4
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo
+
+  # Assert
+  [ "${output}" = "4" ]
+}
+
+@test "ticker.sh - minute wakes one second after the next minute starts" {
+  # Arrange
+  store @demo_interval minute
+  export REVAMPED_TEST_SECOND=45
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo
+
+  # Assert
+  [ "${output}" = "16" ]
+}
+
+@test "ticker.sh - a leading zero second reads as decimal" {
+  # Arrange
+  store @demo_interval minute
+  export REVAMPED_TEST_SECOND=08
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo
+
+  # Assert
+  [ "${output}" = "53" ]
+}
+
+@test "ticker.sh - an unreadable second still yields a full minute" {
+  # Arrange
+  store @demo_interval minute
+  export REVAMPED_TEST_SECOND=garbage
+
+  # Act
+  lib_call ticker revamped_ticker_interval demo
+
+  # Assert
+  [ "${output}" = "61" ]
+}
+
+@test "ticker.sh - start runs the script's daemon subcommand in the background" {
+  # Arrange
+  local script="${BATS_TEST_TMPDIR}/demo.sh" seen="${BATS_TEST_TMPDIR}/seen"
+  printf '#!/bin/sh\nprintf "%%s" "$1" >"%s"\n' "${seen}" >"${script}"
   chmod +x "${script}"
 
   # Act
-  _ticker_spawn "${script}"
+  lib_call ticker revamped_ticker_start "${script}"
 
   # Assert
-  wait_for_file "${TEST_TMPDIR}/spawned"
-  [[ "$(cat "${TEST_TMPDIR}/spawned")" == "daemon" ]]
+  wait_for_file "${seen}"
+  [ "$(cat "${seen}")" = "daemon" ]
 }
 
-@test "ticker - spawn detaches the daemon from the caller's stdin" {
+@test "ticker.sh - start detaches the daemon from the caller's stdin" {
   # Arrange
-  local script="${TEST_TMPDIR}/reader.sh"
-  printf '#!/usr/bin/env bash\ncat > "%s/stdin"\n: > "%s/read"\n' "${TEST_TMPDIR}" "${TEST_TMPDIR}" >"${script}"
+  local script="${BATS_TEST_TMPDIR}/reader.sh" done_marker="${BATS_TEST_TMPDIR}/read"
+  printf '#!/bin/sh\ncat >/dev/null\nprintf done >"%s"\n' "${done_marker}" >"${script}"
   chmod +x "${script}"
 
   # Act
-  (
-    set -m
-    _ticker_spawn "${script}"
-  ) <<<"leaked"
+  lib_call ticker revamped_ticker_start "${script}"
 
   # Assert
-  wait_for_file "${TEST_TMPDIR}/read"
-  [[ "$(cat "${TEST_TMPDIR}/stdin")" == "" ]]
+  wait_for_file "${done_marker}"
+  [ "$(cat "${done_marker}")" = "done" ]
 }
 
-@test "ticker - the sleep seam is callable" {
-  unset _TMUX_PLUGIN_TICKER_LOADED
-  source "${TICKER_LIB}"
+@test "ticker.sh - an option is read from tmux once and its name is learned" {
+  # Arrange
+  store @alpha one
 
-  run _ticker_sleep 0
+  # Act
+  lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_get_option @alpha fallback; revamped_ticker_get_option @alpha fallback'
 
+  # Assert
+  [ "${output}" = "$(printf 'one\none')" ]
+  [ "$(grep -c '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
+  [ "$(stored @demo_option_names)" = " @alpha" ]
+}
+
+@test "ticker.sh - an empty option returns the default" {
+  # Arrange
+  local default=fallback
+
+  # Act
+  lib_run ticker "REVAMPED_TICKER_PREFIX=demo; revamped_ticker_get_option @empty ${default}"
+
+  # Assert
+  [ "${output}" = "fallback" ]
+}
+
+@test "ticker.sh - a write reaches tmux and the memory copy" {
+  # Arrange
+  local script='revamped_ticker_set_option @beta two; revamped_ticker_get_option @beta ""'
+
+  # Act
+  lib_run ticker "${script}"
+
+  # Assert
+  [ "${output}" = "two" ]
+  [ "$(grep -c '^show-option -gqv @beta$' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
+  [ "$(stored @beta)" = "two" ]
+}
+
+@test "ticker.sh - a write joins the publish batch once the publisher is loaded" {
+  # Arrange
+  export REVAMPED_TEST_TMUX_ARGV="${BATS_TEST_TMPDIR}/argv"
+  local script='. "${REVAMPED_LIB}/publish.sh"; revamped_ticker_set_option @gamma 3; revamped_publish_commit'
+
+  # Act
+  lib_run ticker "${script}"
+
+  # Assert
   [ "${status}" -eq 0 ]
+  [ "$(cat "${REVAMPED_TEST_TMUX_ARGV}")" = "set-option|-gq|@gamma|3" ]
 }
 
-@test "ticker - a plugin interval option wins over the fallback" {
-  tmux set-option -gq "@demo_interval" "12"
-
-  run ticker_interval demo 30
-
-  [[ "${output}" == "12" ]]
-}
-
-@test "ticker - the fallback applies when the plugin sets no interval" {
-  run ticker_interval demo 30
-
-  [[ "${output}" == "30" ]]
-}
-
-@test "ticker - an invalid plugin interval falls back to status-interval" {
-  tmux set-option -gq "@demo_interval" "soon"
-  stub_status_interval 4
-
-  run ticker_interval demo ""
-
-  [[ "${output}" == "4" ]]
-}
-
-@test "ticker - minute wakes one second after the next minute starts" {
-  _ticker_second_of_minute() { printf '08'; }
-
-  run ticker_interval demo minute
-
-  [[ "${output}" == "53" ]]
-}
-
-@test "ticker - an unreadable second still yields a full minute" {
-  _ticker_second_of_minute() { printf 'xx'; }
-
-  run ticker_seconds_to_next_minute
-
-  [[ "${output}" == "61" ]]
-}
-
-@test "ticker - run sleeps for the plugin fallback interval" {
-  TICKER_MAX_TICKS=1
-
-  ticker_run demo record_tick 4242 30
-
-  [[ "$(grep -c '^sleep 30$' "${TICK_LOG}")" == "1" ]]
-}
-
-@test "ticker - the second-of-minute seam reads the clock" {
-  run _ticker_second_of_minute
-
-  [[ "${output}" =~ ^[0-9]{2}$ ]]
-}
-
-stub_ticker_tmux() {
-  export TMUX_LOG="${TEST_TMPDIR}/tmux.log"
-  _ticker_tmux() {
-    printf '%s\n' "$*" >>"${TMUX_LOG}"
-    case "${1} ${2:-} ${3:-}" in
-    "show-option -gqv @demo_option_names") printf '%s' "${STUB_NAMES:-}" ;;
-    "show-option -gqv @alpha") printf 'one' ;;
-    "display-message -p "*) printf '%s' "${STUB_VALUES:-}" ;;
-    esac
-    return 0
-  }
-}
-
-@test "ticker - an option is read from tmux once and its name is learned" {
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-
-  ticker_get_option "@alpha" "fallback" >/dev/null
-
-  [[ "$(paste -sd'|' "${TMUX_LOG}")" == "show-option -gqv @alpha|set-option -gqa @demo_option_names  @alpha" ]]
-}
-
-@test "ticker - a learned option is served from memory" {
+@test "ticker.sh - prefetch reads every learned option in one call" {
   # Arrange
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-  ticker_get_option "@alpha" "" >/dev/null
-  : >"${TMUX_LOG}"
+  store @demo_option_names " @a @b @a"
+  tmux_answer "$(printf '#{@a}\037#{@b}\037')" "$(printf '1\0372 two\037')"
 
   # Act
-  run ticker_get_option "@alpha" ""
+  lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_prefetch; revamped_ticker_get_option @a ""; revamped_ticker_get_option @b ""'
 
   # Assert
-  [[ "${output}" == "one" ]]
-  [ ! -s "${TMUX_LOG}" ]
+  [ "${output}" = "$(printf '1\n2 two')" ]
+  [ "$(grep -c '^display-message' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
+  [ "$(grep -c '^show-option -gqv @a$' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
 }
 
-@test "ticker - an empty option returns the default" {
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-
-  run ticker_get_option "@empty" "fallback"
-
-  [[ "${output}" == "fallback" ]]
-}
-
-@test "ticker - a write reaches tmux and the memory copy" {
-  stub_ticker_tmux
-  ticker_set_option "@beta" "two"
-
-  run ticker_get_option "@beta" ""
-
-  [[ "${output}" == "two" ]]
-  [[ "$(head -1 "${TMUX_LOG}")" == "set-option -gq @beta two" ]]
-}
-
-@test "ticker - prefetch reads every learned option in one call" {
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-  export STUB_NAMES=" @a @b @a"
-  export STUB_VALUES=$'1\x1f2 two\x1f'
-
-  ticker_prefetch
-
-  [[ "${TICKER_OPT_COUNT}" == "2" ]]
-  [[ "${TICKER_OPT_VALUES[1]}" == "2 two" ]]
-  [[ "$(grep -c '^display-message' "${TMUX_LOG}")" == "1" ]]
-}
-
-@test "ticker - prefetch drops the snapshot when fields are missing" {
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-  export STUB_NAMES=" @a @b"
-  export STUB_VALUES=$'1\x1f'
-
-  ticker_prefetch
-
-  [[ "${TICKER_OPT_COUNT}" == "0" ]]
-}
-
-@test "ticker - prefetch with no learned names makes no display call" {
-  stub_ticker_tmux
-  TICKER_PREFIX="demo"
-
-  ticker_prefetch
-
-  [[ "$(grep -c '^display-message' "${TMUX_LOG}")" == "0" ]]
-}
-
-@test "ticker - install routes option reads through the snapshot" {
+@test "ticker.sh - prefetch drops the snapshot when fields are missing" {
   # Arrange
-  stub_ticker_tmux
-  ticker_install demo
+  store @demo_option_names " @a @b"
+  tmux_answer "$(printf '#{@a}\037#{@b}\037')" "$(printf '1\037')"
+  store @a live
 
   # Act
-  run revamped_tmux_get "@alpha" ""
+  lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_prefetch; revamped_ticker_get_option @a ""'
 
   # Assert
-  [[ "${output}" == "one" ]]
+  [ "${output}" = "live" ]
 }
 
-@test "ticker - install reads the clock from EPOCHSECONDS when bash has it" {
+@test "ticker.sh - prefetch with no learned names makes no display call" {
   # Arrange
-  stub_ticker_tmux
-  EPOCHSECONDS="${EPOCHSECONDS:-1700000000}"
+  local script='REVAMPED_TICKER_PREFIX=demo; revamped_ticker_prefetch'
 
   # Act
-  ticker_install demo
+  lib_run ticker "${script}"
 
   # Assert
-  [[ "$(declare -f revamped_cache_now)" == *'EPOCHSECONDS'* ]]
+  [ "$(grep -c '^display-message' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
 }
 
-@test "ticker - unexport keeps functions defined but out of the environment" {
-  demo_exported() { return 0; }
-  export -f demo_exported
-
-  ticker_unexport_functions
-
-  declare -F demo_exported >/dev/null
-  [[ -z "$(env | grep '^BASH_FUNC_demo_exported')" ]]
-}
-
-@test "ticker - a write outside the main shell goes straight to tmux" {
-  stub_ticker_tmux
-  TICKER_MAIN_PID=""
-
-  ticker_set_option "@gamma" "3"
-
-  [[ "$(head -1 "${TMUX_LOG}")" == "set-option -gq @gamma 3" ]]
-}
-
-@test "ticker - a write in the main shell joins the publish batch" {
+@test "ticker.sh - install routes option reads through the snapshot" {
   # Arrange
-  stub_ticker_tmux
-  revamped_publish_add_raw() { printf '%s=%s\n' "${1}" "${2}" >>"${TEST_TMPDIR}/batch"; }
-  TICKER_MAIN_PID="${BASHPID:-main}"
-  [[ -n "${BASHPID:-}" ]] || skip "this bash has no BASHPID"
+  store @alpha one
 
   # Act
-  ticker_set_option "@gamma" "3"
+  lib_run ticker 'revamped_ticker_install demo; revamped_tmux_get @alpha ""; revamped_tmux_get @alpha ""'
 
   # Assert
-  [[ "$(cat "${TEST_TMPDIR}/batch")" == "@gamma=3" ]]
-  [ ! -s "${TMUX_LOG}" ]
+  [ "${output}" = "$(printf 'one\none')" ]
+  [ "$(grep -c '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
+}
+
+@test "ticker.sh - install keeps the date clock where the shell has no EPOCHSECONDS" {
+  # Arrange
+  export REVAMPED_TEST_NOW=42
+
+  # Act
+  lib_run ticker '. "${REVAMPED_LIB}/cache.sh"; unset EPOCHSECONDS; revamped_ticker_install demo; revamped_cache_now'
+
+  # Assert
+  [ "${output}" = "42" ]
+}
+
+@test "ticker.sh - install reads the clock from EPOCHSECONDS where the shell has it" {
+  # Arrange
+  export REVAMPED_TEST_NOW=42
+
+  # Act
+  lib_run ticker '. "${REVAMPED_LIB}/cache.sh"; EPOCHSECONDS="${EPOCHSECONDS:-1700000000}"; revamped_ticker_install demo; revamped_cache_now'
+
+  # Assert
+  [ "${output}" != "42" ]
+  [[ "${output}" =~ ^[0-9]+$ ]]
 }

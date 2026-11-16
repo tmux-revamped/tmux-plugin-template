@@ -86,7 +86,7 @@ revamped_cache_render load 5 read_load
 | 模块 | 函数 |
 |:-------|:----------|
 | [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale` |
-| [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用于每个服务器一个后台渲染器 |
+| [`lib/ticker.sh`](lib/ticker.sh) | `revamped_ticker_start`、`revamped_ticker_run`、`revamped_ticker_interval`，用于每个服务器一个后台渲染器 |
 | [`lib/publish.sh`](lib/publish.sh) | 用于批量写入选项的 `revamped_publish_add`、`revamped_publish_commit`，把每个 `#` 加倍的 `revamped_publish_escape`，用于固定宽度的 `revamped_publish_pad` 和 `revamped_publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`，每个进程只计算一次 |
@@ -123,7 +123,7 @@ graph LR
 
 `revamped_cache_render` 返回保存的选项值。当该值比给定时长更旧时，它设置一个锁选项，并在分离的子 shell 中开始刷新，因此渲染永远不会等待命令。超过 20 秒的锁视为失效，因此崩溃的刷新不会阻塞下一次刷新。所有状态都在 tmux 服务器选项中，因此不会写入磁盘，服务器停止后即消失。
 
-对于占位符运行频繁的插件，`ticker_run` 为每个服务器保留一个后台进程。它占用 `@<prefix>_ticker_pid`，每次运行时通过一次 tmux 调用读取所需的全部选项，渲染后再通过一次调用写入所有值和重绘，并在另一个进程占用该选项或服务器停止时退出。
+对于占位符运行频繁的插件，`revamped_ticker_run` 为每个服务器保留一个后台进程。它占用 `@<prefix>_ticker_pid`，每次运行时通过一次 tmux 调用读取所需的全部选项，渲染后再通过一次调用写入所有值和重绘，并在另一个进程占用该选项或服务器停止时退出。
 
 ## 开发
 

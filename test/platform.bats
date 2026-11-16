@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/harness.bash"
+load "${BATS_TEST_DIRNAME}/helpers.bash"
 
 setup() {
   harness_setup

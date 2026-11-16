@@ -86,7 +86,7 @@ revamped_cache_render load 5 read_load
 | モジュール | 関数 |
 |:-------|:----------|
 | [`lib/cache.sh`](lib/cache.sh) | `revamped_cache_render`、`revamped_cache_get`、`revamped_cache_set`、`revamped_cache_age`、`revamped_cache_is_fresh`、`revamped_cache_refresh_if_stale`、`revamped_cache_set_if_stale` |
-| [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
+| [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`revamped_ticker_start`、`revamped_ticker_run`、`revamped_ticker_interval` |
 | [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`revamped_publish_add`、`revamped_publish_commit`、すべての`#`を二重にする`revamped_publish_escape`、固定幅のための`revamped_publish_pad`と`revamped_publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
@@ -123,7 +123,7 @@ graph LR
 
 `revamped_cache_render`は保存済みのオプションの値を返します。値が指定した経過時間より古ければ、ロックのオプションを設定し、切り離したサブシェルで更新を始めるので、描画がコマンドを待つことはありません。20秒より古いロックは無効とみなすので、異常終了した更新が次の更新を妨げることはありません。状態はすべてtmuxサーバーのオプションにあるので、ディスクには何も書かず、サーバーが止まれば消えます。
 
-プレースホルダーが頻繁に実行されるプラグインでは、`ticker_run`がサーバーごとに1つのバックグラウンドプロセスを保ちます。このプロセスは`@<prefix>_ticker_pid`を取得し、1回ごとに必要なオプションを1回のtmux呼び出しですべて読み、描画し、すべての値と再描画をもう1回の呼び出しで書き込み、別のプロセスがこのオプションを取得するかサーバーが止まると終了します。
+プレースホルダーが頻繁に実行されるプラグインでは、`revamped_ticker_run`がサーバーごとに1つのバックグラウンドプロセスを保ちます。このプロセスは`@<prefix>_ticker_pid`を取得し、1回ごとに必要なオプションを1回のtmux呼び出しですべて読み、描画し、すべての値と再描画をもう1回の呼び出しで書き込み、別のプロセスがこのオプションを取得するかサーバーが止まると終了します。
 
 ## 開発
 
