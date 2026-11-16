@@ -2,10 +2,10 @@ SHELL := /bin/sh
 PREFIX ?= $(HOME)/.local
 TOOL = template-revamped
 SCRIPTS = $(shell git ls-files -- '*.sh' '*.bash' '*.bats' '*.tmux' 'bin/*' 'test/bin/*')
-POSIX_SCRIPTS = $(shell git ls-files -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*')
+POSIX_SCRIPTS = $(shell git ls-files -- 'bin/*' 'lib/*.sh' '*.tmux' '.github/scripts/*.sh' 'test/*.sh' 'test/bin/*' 'screens/*.sh')
 TEST_SCRIPTS = $(shell git ls-files -- 'test/*.bash' 'test/*.bats')
 
-.PHONY: help fmt lint test test-all test-linux coverage check install clean
+.PHONY: help fmt lint test test-all test-linux coverage check screens install clean
 
 help:
 	@echo "targets:"
@@ -16,6 +16,7 @@ help:
 	@echo "  test-linux  the bats suites in an Ubuntu container"
 	@echo "  coverage    bashcov on this Mac and in the Ubuntu container, merged, gate 100%"
 	@echo "  check       lint and test"
+	@echo "  screens     the README screens, recorded from the real tool with VHS, on macOS"
 	@echo "  install     the tool, its man page and completions under PREFIX, ~/.local by default"
 	@echo "  clean       remove the coverage output"
 
@@ -46,6 +47,9 @@ coverage:
 	python3 .github/scripts/coverage-gate.py '/(lib/[a-z]+\.sh|bin/[a-z-]+)\Z' 100 coverage-macos.json coverage-linux.json
 
 check: lint test
+
+screens:
+	sh screens/record.sh
 
 install:
 	mkdir -p "$(PREFIX)/share/$(TOOL)" "$(PREFIX)/bin" "$(PREFIX)/share/man/man1" "$(PREFIX)/share/bash-completion/completions" "$(PREFIX)/share/zsh/site-functions" "$(PREFIX)/share/fish/vendor_completions.d"
