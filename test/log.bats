@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -18,8 +20,8 @@ setup() {
   lib_call log revamped_log_error comp ""
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ ! -e "${REVAMPED_LOG_FILE}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ ! -e "${REVAMPED_LOG_FILE}" ]]
 }
 
 @test "log.sh - nothing is written while logging is off" {
@@ -30,8 +32,8 @@ setup() {
   lib_call log revamped_log_error comp "${message}"
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ ! -e "${REVAMPED_LOG_FILE}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ ! -e "${REVAMPED_LOG_FILE}" ]]
 }
 
 @test "log.sh - an enabled log gets one stamped line" {
@@ -42,7 +44,8 @@ setup() {
   lib_call log revamped_log_error startup "hello world"
 
   # Assert
-  [ "$(cat "${REVAMPED_LOG_FILE}")" = "[2026-01-15 14:30:00] [startup] hello world" ]
+  actual="$(cat "${REVAMPED_LOG_FILE}")"
+  [[ "${actual}" = "[2026-01-15 14:30:00] [startup] hello world" ]]
 }
 
 @test "log.sh - the component keeps only letters, digits, dashes and underscores" {
@@ -53,7 +56,8 @@ setup() {
   lib_call log revamped_log_error "bad;rm /" msg
 
   # Assert
-  [ "$(cat "${REVAMPED_LOG_FILE}")" = "[2026-01-15 14:30:00] [badrm] msg" ]
+  actual="$(cat "${REVAMPED_LOG_FILE}")"
+  [[ "${actual}" = "[2026-01-15 14:30:00] [badrm] msg" ]]
 }
 
 @test "log.sh - a log past its size keeps only its newest lines" {
@@ -67,7 +71,9 @@ setup() {
   lib_call log revamped_log_error comp trigger
 
   # Assert
-  [ "$(cat "${REVAMPED_LOG_FILE}")" = "$(printf '%s\n%s' l5 '[2026-01-15 14:30:00] [comp] trigger')" ]
+  expected="$(printf '%s\n%s' l5 '[2026-01-15 14:30:00] [comp] trigger')"
+  actual="$(cat "${REVAMPED_LOG_FILE}")"
+  [[ "${actual}" == "${expected}" ]]
 }
 
 @test "log.sh - a log within its size is left whole" {
@@ -80,7 +86,8 @@ setup() {
   lib_call log revamped_log_error comp trigger
 
   # Assert
-  [ "$(wc -l <"${REVAMPED_LOG_FILE}" | tr -d ' ')" -eq 3 ]
+  actual="$(grep -c '' "${REVAMPED_LOG_FILE}")"
+  [[ "${actual}" -eq 3 ]]
 }
 
 @test "log.sh - an unwritable log folder writes nothing and succeeds" {
@@ -92,8 +99,8 @@ setup() {
   lib_call log revamped_log_error comp msg
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ -z "${output}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ -z "${output}" ]]
 }
 
 @test "log.sh - the option name comes from the namespace" {
@@ -104,5 +111,5 @@ setup() {
   lib_run log 'printf "%s\n" "${REVAMPED_LOG_OPTION}"'
 
   # Assert
-  [ "${output}" = "@test_rev_enable_logging" ]
+  [[ "${output}" = "@test_rev_enable_logging" ]]
 }

@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -17,7 +19,7 @@ setup() {
   lib_call notify revamped_notify_backend
 
   # Assert
-  [ "${output}" = "osascript" ]
+  [[ "${output}" = "osascript" ]]
 }
 
 @test "notify.sh - backend is notify-send on Linux even when osascript exists" {
@@ -31,7 +33,7 @@ setup() {
   lib_call notify revamped_notify_backend
 
   # Assert
-  [ "${output}" = "notify-send" ]
+  [[ "${output}" = "notify-send" ]]
 }
 
 @test "notify.sh - backend is none without a notifier" {
@@ -43,7 +45,7 @@ setup() {
   lib_call notify revamped_notify_backend
 
   # Assert
-  [ "${output}" = "none" ]
+  [[ "${output}" = "none" ]]
 }
 
 @test "notify.sh - enabled is false while the option is unset" {
@@ -54,7 +56,7 @@ setup() {
   lib_call notify revamped_notify_enabled "${option}"
 
   # Assert
-  [ "${status}" -eq 1 ]
+  [[ "${status}" -eq 1 ]]
 }
 
 @test "notify.sh - enabled is true only for 1" {
@@ -65,7 +67,7 @@ setup() {
   lib_call notify revamped_notify_enabled @cpu_revamped_notify
 
   # Assert
-  [ "${status}" -eq 0 ]
+  [[ "${status}" -eq 0 ]]
 }
 
 @test "notify.sh - send passes quotes and backslashes to osascript as arguments" {
@@ -78,8 +80,10 @@ setup() {
   lib_call notify revamped_notify_send 'Disk "x"' 'mount /Volumes/a\b "quoted"'
 
   # Assert
-  [ "$(stub_calls osascript | tail -n 2 | head -n 1)" = 'Disk "x"' ]
-  [ "$(stub_calls osascript | tail -n 1)" = 'mount /Volumes/a\b "quoted"' ]
+  actual="$(awk '{ line[NR] = $0 } END { print line[NR - 1] }' "${BATS_TEST_TMPDIR}/osascript.calls")"
+  [[ "${actual}" = 'Disk "x"' ]]
+  actual="$(sed -n '$p' "${BATS_TEST_TMPDIR}/osascript.calls")"
+  [[ "${actual}" = 'mount /Volumes/a\b "quoted"' ]]
 }
 
 @test "notify.sh - send ends notify-send options before the title" {
@@ -92,7 +96,9 @@ setup() {
   lib_call notify revamped_notify_send -title body
 
   # Assert
-  [ "$(stub_calls notify-send)" = "$(printf '%s\n%s\n%s' -- -title body)" ]
+  expected="$(printf '%s\n%s\n%s' -- -title body)"
+  actual="$(stub_calls notify-send)"
+  [[ "${actual}" == "${expected}" ]]
 }
 
 @test "notify.sh - send succeeds with no notifier" {
@@ -104,8 +110,8 @@ setup() {
   lib_call notify revamped_notify_send title body
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ -z "${output}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ -z "${output}" ]]
 }
 
 @test "notify.sh - if enabled sends nothing while the option is off" {
@@ -118,8 +124,8 @@ setup() {
   lib_call notify revamped_notify_if_enabled @cpu_revamped_notify title body
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ ! -e "${BATS_TEST_TMPDIR}/notify-send.calls" ]
+  [[ "${status}" -eq 0 ]]
+  [[ ! -e "${BATS_TEST_TMPDIR}/notify-send.calls" ]]
 }
 
 @test "notify.sh - if enabled sends once the option is 1" {
@@ -133,5 +139,7 @@ setup() {
   lib_call notify revamped_notify_if_enabled @cpu_revamped_notify title body
 
   # Assert
-  [ "$(stub_calls notify-send)" = "$(printf '%s\n%s\n%s' -- title body)" ]
+  expected="$(printf '%s\n%s\n%s' -- title body)"
+  actual="$(stub_calls notify-send)"
+  [[ "${actual}" == "${expected}" ]]
 }

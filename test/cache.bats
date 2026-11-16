@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -16,10 +18,12 @@ store() {
 }
 
 wait_until_stored() {
-  local tries=0
-  while [ "$(stored "$1")" != "$2" ] && [ "${tries}" -lt 200 ]; do
+  local tries=0 value
+  value="$(stored "$1")"
+  while [[ "${value}" != "$2" ]] && [[ "${tries}" -lt 200 ]]; do
     sleep 0.01
     tries=$((tries + 1))
+    value="$(stored "$1")"
   done
 }
 
@@ -31,7 +35,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_get "${key}"
 
   # Assert
-  [ "${output}" = "" ]
+  [[ "${output}" = "" ]]
 }
 
 @test "cache.sh - set stores the value and stamps the write time" {
@@ -42,8 +46,10 @@ wait_until_stored() {
   lib_call cache revamped_cache_set "${key}" 42
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "42" ]
-  [ "$(stored @test_rev_percent_ts)" = "1000000" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "42" ]]
+  actual="$(stored @test_rev_percent_ts)"
+  [[ "${actual}" = "1000000" ]]
 }
 
 @test "cache.sh - age is the sentinel for a never-written key" {
@@ -54,7 +60,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_age "${key}"
 
   # Assert
-  [ "${output}" = "999999999" ]
+  [[ "${output}" = "999999999" ]]
 }
 
 @test "cache.sh - age reflects elapsed time" {
@@ -66,7 +72,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_age percent
 
   # Assert
-  [ "${output}" = "10" ]
+  [[ "${output}" = "10" ]]
 }
 
 @test "cache.sh - age is the sentinel for a non-numeric timestamp" {
@@ -77,7 +83,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_age percent
 
   # Assert
-  [ "${output}" = "999999999" ]
+  [[ "${output}" = "999999999" ]]
 }
 
 @test "cache.sh - fresh within the max age" {
@@ -89,7 +95,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_is_fresh percent 5
 
   # Assert
-  [ "${status}" -eq 0 ]
+  [[ "${status}" -eq 0 ]]
 }
 
 @test "cache.sh - stale beyond the max age" {
@@ -101,7 +107,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_is_fresh percent 5
 
   # Assert
-  [ "${status}" -eq 1 ]
+  [[ "${status}" -eq 1 ]]
 }
 
 @test "cache.sh - a non-numeric max age is never fresh and never evaluated" {
@@ -113,8 +119,8 @@ wait_until_stored() {
   lib_call cache revamped_cache_is_fresh key "x[\$(touch ${marker})]"
 
   # Assert
-  [ "${status}" -eq 1 ]
-  [ ! -e "${marker}" ]
+  [[ "${status}" -eq 1 ]]
+  [[ ! -e "${marker}" ]]
 }
 
 @test "cache.sh - no refresh while fresh" {
@@ -125,7 +131,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_should_refresh percent 5
 
   # Assert
-  [ "${status}" -eq 1 ]
+  [[ "${status}" -eq 1 ]]
 }
 
 @test "cache.sh - refresh when stale and unlocked" {
@@ -136,7 +142,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_should_refresh "${key}" 5
 
   # Assert
-  [ "${status}" -eq 0 ]
+  [[ "${status}" -eq 0 ]]
 }
 
 @test "cache.sh - no refresh while a fresh lock is held" {
@@ -149,7 +155,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_should_refresh percent 1
 
   # Assert
-  [ "${status}" -eq 1 ]
+  [[ "${status}" -eq 1 ]]
 }
 
 @test "cache.sh - refresh once the lock is older than the max run" {
@@ -162,7 +168,7 @@ wait_until_stored() {
   lib_call cache revamped_cache_should_refresh percent 1
 
   # Assert
-  [ "${status}" -eq 0 ]
+  [[ "${status}" -eq 0 ]]
 }
 
 @test "cache.sh - a non-numeric max run falls back to the default and is never evaluated" {
@@ -176,8 +182,8 @@ wait_until_stored() {
   lib_call cache revamped_cache_should_refresh key 10
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ ! -e "${marker}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ ! -e "${marker}" ]]
 }
 
 @test "cache.sh - refresh runs the worker when stale and clears the lock" {
@@ -188,8 +194,10 @@ wait_until_stored() {
   lib_run cache "${script}"
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "fresh" ]
-  [ "$(stored @test_rev_percent_lock)" = "0" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "fresh" ]]
+  actual="$(stored @test_rev_percent_lock)"
+  [[ "${actual}" = "0" ]]
 }
 
 @test "cache.sh - refresh does nothing while fresh" {
@@ -201,7 +209,8 @@ wait_until_stored() {
   lib_run cache 'worker() { revamped_cache_set percent new; }; revamped_cache_refresh_if_stale percent 5 worker'
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "old" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "old" ]]
 }
 
 @test "cache.sh - render refreshes a stale value and prints the new one" {
@@ -214,7 +223,7 @@ wait_until_stored() {
   lib_run cache 'worker() { revamped_cache_set percent 20; }; revamped_cache_render percent 5 worker'
 
   # Assert
-  [ "${output}" = "20" ]
+  [[ "${output}" = "20" ]]
 }
 
 @test "cache.sh - render prints a fresh value without running the worker" {
@@ -226,7 +235,7 @@ wait_until_stored() {
   lib_run cache 'worker() { revamped_cache_set percent 20; }; revamped_cache_render percent 5 worker'
 
   # Assert
-  [ "${output}" = "10" ]
+  [[ "${output}" = "10" ]]
 }
 
 @test "cache.sh - a background refresh runs the worker and then clears its lock" {
@@ -238,8 +247,10 @@ wait_until_stored() {
 
   # Assert
   wait_until_stored @test_rev_percent_lock 0
-  [ "$(stored @test_rev_done)" = "yes" ]
-  [ "$(stored @test_rev_percent_lock)" = "0" ]
+  actual="$(stored @test_rev_done)"
+  [[ "${actual}" = "yes" ]]
+  actual="$(stored @test_rev_percent_lock)"
+  [[ "${actual}" = "0" ]]
 }
 
 @test "cache.sh - set_if_stale keeps a fresh value" {
@@ -251,7 +262,8 @@ wait_until_stored() {
   lib_run cache 'probe() { printf changed; }; revamped_cache_set_if_stale percent 5 probe'
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "keep" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "keep" ]]
 }
 
 @test "cache.sh - set_if_stale recomputes a stale value" {
@@ -264,7 +276,8 @@ wait_until_stored() {
   lib_run cache 'probe() { printf new; }; revamped_cache_set_if_stale percent 5 probe'
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "new" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "new" ]]
 }
 
 @test "cache.sh - set_if_stale forwards the arguments to the producer" {
@@ -275,5 +288,6 @@ wait_until_stored() {
   lib_run cache "${script}"
 
   # Assert
-  [ "$(stored @test_rev_percent)" = "a-b" ]
+  actual="$(stored @test_rev_percent)"
+  [[ "${actual}" = "a-b" ]]
 }

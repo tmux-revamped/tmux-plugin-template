@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -19,7 +21,7 @@ sent() {
   lib_call publish revamped_publish_pad "${value}" 4
 
   # Assert
-  [ "${output}" = "  9%" ]
+  [[ "${output}" = "  9%" ]]
 }
 
 @test "publish.sh - pad counts a multibyte character once" {
@@ -30,7 +32,7 @@ sent() {
   lib_call publish revamped_publish_pad "${value}" 5
 
   # Assert
-  [ "${output}" = " 45°C" ]
+  [[ "${output}" = " 45°C" ]]
 }
 
 @test "publish.sh - pad with zero width returns the value unchanged" {
@@ -41,7 +43,7 @@ sent() {
   lib_call publish revamped_publish_pad "${value}" 0
 
   # Assert
-  [ "${output}" = "9%" ]
+  [[ "${output}" = "9%" ]]
 }
 
 @test "publish.sh - pad never cuts a wider value" {
@@ -52,7 +54,7 @@ sent() {
   lib_call publish revamped_publish_pad "${value}" 2
 
   # Assert
-  [ "${output}" = "100%" ]
+  [[ "${output}" = "100%" ]]
 }
 
 @test "publish.sh - pad treats a non-numeric width as zero" {
@@ -63,7 +65,7 @@ sent() {
   lib_call publish revamped_publish_pad "${value}" wide
 
   # Assert
-  [ "${output}" = "9%" ]
+  [[ "${output}" = "9%" ]]
 }
 
 @test "publish.sh - chars counts characters, not bytes" {
@@ -74,7 +76,7 @@ sent() {
   lib_call publish revamped_publish_chars "${value}"
 
   # Assert
-  [ "${output}" = "2" ]
+  [[ "${output}" = "2" ]]
 }
 
 @test "publish.sh - chars keeps the caller's locale" {
@@ -85,7 +87,7 @@ sent() {
   lib_run publish 'revamped_publish_chars ab >/dev/null; printf "%s\n" "${LC_ALL}"'
 
   # Assert
-  [ "${output}" = "en_US.UTF-8" ]
+  [[ "${output}" = "en_US.UTF-8" ]]
 }
 
 @test "publish.sh - chars and escape need no external command" {
@@ -96,7 +98,7 @@ sent() {
   lib_run publish 'revamped_publish_chars 45°C; printf " "; revamped_publish_escape "#x"'
 
   # Assert
-  [ "${output}" = "4 ##x" ]
+  [[ "${output}" = "4 ##x" ]]
 }
 
 @test "publish.sh - width is zero by default" {
@@ -107,7 +109,7 @@ sent() {
   lib_call publish revamped_publish_width cpu_revamped percentage "${natural}"
 
   # Assert
-  [ "${output}" = "0" ]
+  [[ "${output}" = "0" ]]
 }
 
 @test "publish.sh - fixed width uses the natural maximum" {
@@ -118,7 +120,7 @@ sent() {
   lib_call publish revamped_publish_width cpu_revamped percentage 4
 
   # Assert
-  [ "${output}" = "4" ]
+  [[ "${output}" = "4" ]]
 }
 
 @test "publish.sh - a metric width overrides fixed width" {
@@ -130,7 +132,7 @@ sent() {
   lib_call publish revamped_publish_width cpu_revamped percentage 4
 
   # Assert
-  [ "${output}" = "3" ]
+  [[ "${output}" = "3" ]]
 }
 
 @test "publish.sh - a non-numeric metric width falls back to fixed width" {
@@ -142,7 +144,7 @@ sent() {
   lib_call publish revamped_publish_width cpu_revamped percentage 4
 
   # Assert
-  [ "${output}" = "4" ]
+  [[ "${output}" = "4" ]]
 }
 
 @test "publish.sh - escape doubles every hash so tmux prints it literally" {
@@ -153,7 +155,7 @@ sent() {
   lib_call publish revamped_publish_escape "${value}"
 
   # Assert
-  [ "${output}" = '##[fg=red]##(id)##' ]
+  [[ "${output}" = '##[fg=red]##(id)##' ]]
 }
 
 @test "publish.sh - commit sends every option in one call" {
@@ -164,7 +166,8 @@ sent() {
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|1|;|set-option|-gq|@b|2%%" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|1|;|set-option|-gq|@b|2%%" ]]
 }
 
 @test "publish.sh - a pane value targets that pane" {
@@ -175,7 +178,8 @@ sent() {
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-pq|-t|%3|@a|1" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-pq|-t|%3|@a|1" ]]
 }
 
 @test "publish.sh - commit refreshes every attached client" {
@@ -186,7 +190,8 @@ sent() {
   lib_run publish 'revamped_publish_add @a 1; revamped_publish_commit'
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|1|;|refresh-client|-S|-t|/dev/ttys001|;|refresh-client|-S|-t|/dev/ttys002" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|1|;|refresh-client|-S|-t|/dev/ttys001|;|refresh-client|-S|-t|/dev/ttys002" ]]
 }
 
 @test "publish.sh - commit with nothing pending sends nothing" {
@@ -197,8 +202,8 @@ sent() {
   lib_run publish "${script}"
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ ! -e "${REVAMPED_TEST_TMUX_ARGV}" ]
+  [[ "${status}" -eq 0 ]]
+  [[ ! -e "${REVAMPED_TEST_TMUX_ARGV}" ]]
 }
 
 @test "publish.sh - commit empties the batch" {
@@ -209,7 +214,8 @@ sent() {
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|1" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|1" ]]
 }
 
 @test "publish.sh - an empty value stays an argument" {
@@ -220,7 +226,8 @@ sent() {
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a||;|set-option|-gq|@b|2" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a||;|set-option|-gq|@b|2" ]]
 }
 
 @test "publish.sh - a newline inside a value becomes a space" {
@@ -232,7 +239,8 @@ two"; revamped_publish_commit'
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|one two" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|one two" ]]
 }
 
 @test "publish.sh - a trailing semicolon is escaped" {
@@ -243,7 +251,8 @@ two"; revamped_publish_commit'
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = 'set-option|-gq|@a|x\;' ]
+  actual="$(sent)"
+  [[ "${actual}" = 'set-option|-gq|@a|x\;' ]]
 }
 
 @test "publish.sh - a semicolon inside a value is kept" {
@@ -254,7 +263,8 @@ two"; revamped_publish_commit'
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|a;b" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|a;b" ]]
 }
 
 @test "publish.sh - a displayed value doubles its percent signs" {
@@ -265,7 +275,8 @@ two"; revamped_publish_commit'
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|100%%#[fg=red]" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|100%%#[fg=red]" ]]
 }
 
 @test "publish.sh - a raw value keeps its percent signs" {
@@ -276,5 +287,6 @@ two"; revamped_publish_commit'
   lib_run publish "${script}"
 
   # Assert
-  [ "$(sent)" = "set-option|-gq|@a|100%" ]
+  actual="$(sent)"
+  [[ "${actual}" = "set-option|-gq|@a|100%" ]]
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
 setup() {
   SOURCE="$(cd "${BATS_TEST_DIRNAME:-.}/.." && pwd)/.github/scripts/recover.sh"
@@ -27,7 +28,7 @@ recover_fakes() {
 file="${ANSWERS}/$1"
 first="$(head -n 1 "${file}")"
 rest="$(tail -n +2 "${file}")"
-[ -n "${rest}" ] && printf '%s\n' "${rest}" >"${file}"
+[[ -n "${rest}" ]] && printf '%s\n' "${rest}" >"${file}"
 printf '%s\n' "${first}"
 POP
   cat >"${WORK}/scripts/ci-state.sh" <<'STATE'

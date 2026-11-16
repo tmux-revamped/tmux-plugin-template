@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -14,7 +16,7 @@ setup() {
   lib_call command revamped_has_command "${name}"
 
   # Assert
-  [ "${status}" -eq 0 ]
+  [[ "${status}" -eq 0 ]]
 }
 
 @test "command.sh - has_command is false for a missing command" {
@@ -25,5 +27,5 @@ setup() {
   lib_call command revamped_has_command "${name}"
 
   # Assert
-  [ "${status}" -eq 1 ]
+  [[ "${status}" -eq 1 ]]
 }

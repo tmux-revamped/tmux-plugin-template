@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+# shellcheck source=test/helpers.bash
+source "${BATS_TEST_DIRNAME:-.}/helpers.bash"
 
 setup() {
   harness_setup
@@ -10,7 +12,7 @@ setup() {
 }
 
 ticks() {
-  if [ -f "${TICK_LOG}" ]; then
+  if [[ -f "${TICK_LOG}" ]]; then
     grep -c '^tick$' "${TICK_LOG}"
   else
     printf '0'
@@ -31,7 +33,7 @@ tick_snippet() {
 
 wait_for_file() {
   local tries=0
-  while [ ! -s "$1" ] && [ "${tries}" -lt 200 ]; do
+  while [[ ! -s "$1" ]] && [[ "${tries}" -lt 200 ]]; do
     sleep 0.01
     tries=$((tries + 1))
   done
@@ -40,72 +42,85 @@ wait_for_file() {
 @test "ticker.sh - run claims ownership for its pid" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=1
+  script="$(tick_snippet 'revamped_ticker_run demo tick 4242')"
 
   # Act
-  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "$(stored @demo_ticker_pid)" = "4242" ]
+  actual="$(stored @demo_ticker_pid)"
+  [[ "${actual}" = "4242" ]]
 }
 
 @test "ticker.sh - run stops at the tick limit and reports it still owns the ticker" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=3
+  script="$(tick_snippet 'revamped_ticker_run demo tick 4242')"
 
   # Act
-  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ "$(ticks)" = "3" ]
+  [[ "${status}" -eq 0 ]]
+  actual="$(ticks)"
+  [[ "${actual}" = "3" ]]
 }
 
 @test "ticker.sh - run stops when another ticker takes over" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=10
   local script='hand_over() { tick; [ "$(grep -c tick "${TICK_LOG}")" -ge 2 ] && tmux set-option -gq @demo_ticker_pid other; return 0; }; revamped_ticker_run demo hand_over 4242'
+  script="$(tick_snippet "${script}")"
 
   # Act
-  lib_run ticker "$(tick_snippet "${script}")"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "${status}" -eq 1 ]
-  [ "$(ticks)" = "2" ]
+  [[ "${status}" -eq 1 ]]
+  actual="$(ticks)"
+  [[ "${actual}" = "2" ]]
 }
 
 @test "ticker.sh - run stops when the server is gone" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=10 REVAMPED_TEST_TMUX_FAIL=1
+  script="$(tick_snippet 'revamped_ticker_run demo tick 4242')"
 
   # Act
-  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "${status}" -eq 1 ]
-  [ "$(ticks)" = "0" ]
+  [[ "${status}" -eq 1 ]]
+  actual="$(ticks)"
+  [[ "${actual}" = "0" ]]
 }
 
 @test "ticker.sh - each tick sleeps for the interval" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=2
   store status-interval 3
+  script="$(tick_snippet 'revamped_ticker_run demo tick 4242')"
 
   # Act
-  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242')"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "$(stub_calls sleep)" = "$(printf '3\n3')" ]
+  expected="$(printf '3\n3')"
+  actual="$(stub_calls sleep)"
+  [[ "${actual}" == "${expected}" ]]
 }
 
 @test "ticker.sh - run sleeps for the plugin fallback interval" {
   # Arrange
   export REVAMPED_TICKER_MAX_TICKS=1
+  script="$(tick_snippet 'revamped_ticker_run demo tick 4242 9')"
 
   # Act
-  lib_run ticker "$(tick_snippet 'revamped_ticker_run demo tick 4242 9')"
+  lib_run ticker "${script}"
 
   # Assert
-  [ "$(stub_calls sleep)" = "9" ]
+  actual="$(stub_calls sleep)"
+  [[ "${actual}" = "9" ]]
 }
 
 @test "ticker.sh - the interval follows status-interval" {
@@ -116,7 +131,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval
 
   # Assert
-  [ "${output}" = "7" ]
+  [[ "${output}" = "7" ]]
 }
 
 @test "ticker.sh - a missing interval falls back to the default" {
@@ -127,7 +142,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval "${prefix}"
 
   # Assert
-  [ "${output}" = "5" ]
+  [[ "${output}" = "5" ]]
 }
 
 @test "ticker.sh - a zero interval falls back to the default" {
@@ -138,7 +153,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval
 
   # Assert
-  [ "${output}" = "5" ]
+  [[ "${output}" = "5" ]]
 }
 
 @test "ticker.sh - a plugin interval option wins over the fallback" {
@@ -149,7 +164,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo 9
 
   # Assert
-  [ "${output}" = "11" ]
+  [[ "${output}" = "11" ]]
 }
 
 @test "ticker.sh - the fallback applies when the plugin sets no interval" {
@@ -160,7 +175,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo "${fallback}"
 
   # Assert
-  [ "${output}" = "9" ]
+  [[ "${output}" = "9" ]]
 }
 
 @test "ticker.sh - an invalid plugin interval falls back to status-interval" {
@@ -172,7 +187,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo
 
   # Assert
-  [ "${output}" = "4" ]
+  [[ "${output}" = "4" ]]
 }
 
 @test "ticker.sh - minute wakes one second after the next minute starts" {
@@ -184,7 +199,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo
 
   # Assert
-  [ "${output}" = "16" ]
+  [[ "${output}" = "16" ]]
 }
 
 @test "ticker.sh - a leading zero second reads as decimal" {
@@ -196,7 +211,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo
 
   # Assert
-  [ "${output}" = "53" ]
+  [[ "${output}" = "53" ]]
 }
 
 @test "ticker.sh - an unreadable second still yields a full minute" {
@@ -208,7 +223,7 @@ wait_for_file() {
   lib_call ticker revamped_ticker_interval demo
 
   # Assert
-  [ "${output}" = "61" ]
+  [[ "${output}" = "61" ]]
 }
 
 @test "ticker.sh - start runs the script's daemon subcommand in the background" {
@@ -222,7 +237,8 @@ wait_for_file() {
 
   # Assert
   wait_for_file "${seen}"
-  [ "$(cat "${seen}")" = "daemon" ]
+  actual="$(cat "${seen}")"
+  [[ "${actual}" = "daemon" ]]
 }
 
 @test "ticker.sh - start detaches the daemon from the caller's stdin" {
@@ -236,7 +252,8 @@ wait_for_file() {
 
   # Assert
   wait_for_file "${done_marker}"
-  [ "$(cat "${done_marker}")" = "done" ]
+  actual="$(cat "${done_marker}")"
+  [[ "${actual}" = "done" ]]
 }
 
 @test "ticker.sh - an option is read from tmux once and its name is learned" {
@@ -247,9 +264,11 @@ wait_for_file() {
   lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_get_option @alpha fallback; revamped_ticker_get_option @alpha fallback'
 
   # Assert
-  [ "${output}" = "$(printf 'one\none')" ]
-  [ "$(grep -c '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
-  [ "$(stored @demo_option_names)" = " @alpha" ]
+  [[ "${output}" = "$(printf 'one\none')" ]]
+  actual="$(count_matching '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "1" ]]
+  actual="$(stored @demo_option_names)"
+  [[ "${actual}" = " @alpha" ]]
 }
 
 @test "ticker.sh - an empty option returns the default" {
@@ -260,7 +279,7 @@ wait_for_file() {
   lib_run ticker "REVAMPED_TICKER_PREFIX=demo; revamped_ticker_get_option @empty ${default}"
 
   # Assert
-  [ "${output}" = "fallback" ]
+  [[ "${output}" = "fallback" ]]
 }
 
 @test "ticker.sh - a write reaches tmux and the memory copy" {
@@ -271,9 +290,11 @@ wait_for_file() {
   lib_run ticker "${script}"
 
   # Assert
-  [ "${output}" = "two" ]
-  [ "$(grep -c '^show-option -gqv @beta$' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
-  [ "$(stored @beta)" = "two" ]
+  [[ "${output}" = "two" ]]
+  actual="$(count_matching '^show-option -gqv @beta$' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "0" ]]
+  actual="$(stored @beta)"
+  [[ "${actual}" = "two" ]]
 }
 
 @test "ticker.sh - a write joins the publish batch once the publisher is loaded" {
@@ -285,8 +306,9 @@ wait_for_file() {
   lib_run ticker "${script}"
 
   # Assert
-  [ "${status}" -eq 0 ]
-  [ "$(cat "${REVAMPED_TEST_TMUX_ARGV}")" = "set-option|-gq|@gamma|3" ]
+  [[ "${status}" -eq 0 ]]
+  actual="$(cat "${REVAMPED_TEST_TMUX_ARGV}")"
+  [[ "${actual}" = "set-option|-gq|@gamma|3" ]]
 }
 
 @test "ticker.sh - prefetch reads every learned option in one call" {
@@ -298,9 +320,11 @@ wait_for_file() {
   lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_prefetch; revamped_ticker_get_option @a ""; revamped_ticker_get_option @b ""'
 
   # Assert
-  [ "${output}" = "$(printf '1\n2 two')" ]
-  [ "$(grep -c '^display-message' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
-  [ "$(grep -c '^show-option -gqv @a$' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
+  [[ "${output}" = "$(printf '1\n2 two')" ]]
+  actual="$(count_matching '^display-message' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "1" ]]
+  actual="$(count_matching '^show-option -gqv @a$' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "0" ]]
 }
 
 @test "ticker.sh - prefetch drops the snapshot when fields are missing" {
@@ -313,7 +337,7 @@ wait_for_file() {
   lib_run ticker 'REVAMPED_TICKER_PREFIX=demo; revamped_ticker_prefetch; revamped_ticker_get_option @a ""'
 
   # Assert
-  [ "${output}" = "live" ]
+  [[ "${output}" = "live" ]]
 }
 
 @test "ticker.sh - prefetch with no learned names makes no display call" {
@@ -324,7 +348,8 @@ wait_for_file() {
   lib_run ticker "${script}"
 
   # Assert
-  [ "$(grep -c '^display-message' "${REVAMPED_TEST_TMUX_LOG}")" = "0" ]
+  actual="$(count_matching '^display-message' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "0" ]]
 }
 
 @test "ticker.sh - install routes option reads through the snapshot" {
@@ -335,8 +360,9 @@ wait_for_file() {
   lib_run ticker 'revamped_ticker_install demo; revamped_tmux_get @alpha ""; revamped_tmux_get @alpha ""'
 
   # Assert
-  [ "${output}" = "$(printf 'one\none')" ]
-  [ "$(grep -c '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")" = "1" ]
+  [[ "${output}" = "$(printf 'one\none')" ]]
+  actual="$(count_matching '^show-option -gqv @alpha$' "${REVAMPED_TEST_TMUX_LOG}")"
+  [[ "${actual}" = "1" ]]
 }
 
 @test "ticker.sh - install keeps the date clock where the shell has no EPOCHSECONDS" {
@@ -347,7 +373,7 @@ wait_for_file() {
   lib_run ticker '. "${REVAMPED_LIB}/cache.sh"; unset EPOCHSECONDS; revamped_ticker_install demo; revamped_cache_now'
 
   # Assert
-  [ "${output}" = "42" ]
+  [[ "${output}" = "42" ]]
 }
 
 @test "ticker.sh - install reads the clock from EPOCHSECONDS where the shell has it" {
@@ -358,6 +384,6 @@ wait_for_file() {
   lib_run ticker '. "${REVAMPED_LIB}/cache.sh"; EPOCHSECONDS="${EPOCHSECONDS:-1700000000}"; revamped_ticker_install demo; revamped_cache_now'
 
   # Assert
-  [ "${output}" != "42" ]
+  [[ "${output}" != "42" ]]
   [[ "${output}" =~ ^[0-9]+$ ]]
 }

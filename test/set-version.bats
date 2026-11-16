@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2016,SC2030,SC2031
 
 setup() {
   SOURCE="$(cd "${BATS_TEST_DIRNAME:-.}/.." && pwd)/.github/scripts/set-version.sh"
@@ -30,7 +31,9 @@ stamp() {
   # Assert
   [[ "${status}" -eq 0 ]]
   [[ "${output}" == 'readonly CPU_REVAMPED_VERSION="1.4.0"' ]]
-  [[ "$(cat "${CONSTANTS}")" == "$(printf '%s\n' '#!/usr/bin/env bash' 'readonly CPU_REVAMPED_VERSION="1.4.0"' 'readonly CPU_FZF_MIN_VERSION="0.53.0"')" ]]
+  expected="$(printf '%s\n' '#!/usr/bin/env bash' 'readonly CPU_REVAMPED_VERSION="1.4.0"' 'readonly CPU_FZF_MIN_VERSION="0.53.0"')"
+  actual="$(cat "${CONSTANTS}")"
+  [[ "${actual}" == "${expected}" ]]
 }
 
 @test "stamps the template's version constant" {
@@ -42,7 +45,8 @@ stamp() {
 
   # Assert
   [[ "${status}" -eq 0 ]]
-  [[ "$(cat "${CONSTANTS}")" == 'readonly TMUX_PLUGIN_TEMPLATE_VERSION="1.1.0"' ]]
+  actual="$(cat "${CONSTANTS}")"
+  [[ "${actual}" == 'readonly TMUX_PLUGIN_TEMPLATE_VERSION="1.1.0"' ]]
 }
 
 @test "refuses a version that is not dotted digits" {
@@ -55,7 +59,8 @@ stamp() {
   # Assert
   [[ "${status}" -eq 1 ]]
   [[ "${output}" == 'not a release version: 1.4.0/evil' ]]
-  [[ "$(cat "${CONSTANTS}")" == 'readonly CPU_REVAMPED_VERSION="1.3.0"' ]]
+  actual="$(cat "${CONSTANTS}")"
+  [[ "${actual}" == 'readonly CPU_REVAMPED_VERSION="1.3.0"' ]]
 }
 
 @test "refuses a version with an empty part" {
