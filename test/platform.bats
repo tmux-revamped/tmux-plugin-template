@@ -1,75 +1,130 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  source "${BATS_TEST_DIRNAME}/../lib/platform.sh"
+  harness_setup
+  export REVAMPED_TEST_UNAME_LOG="${BATS_TEST_TMPDIR}/uname.log"
 }
 
-teardown() {
-  cleanup_test_environment
+@test "platform.sh - os reports what uname -s says" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Linux
+
+  # Act
+  lib_call platform revamped_platform_os
+
+  # Assert
+  [ "${output}" = "Linux" ]
 }
 
-@test "platform.sh - functions are defined" {
-  function_exists platform_os
-  function_exists platform_arch
-  function_exists is_apple_silicon
-  function_exists is_macos
-  function_exists is_linux
-  function_exists is_bsd
+@test "platform.sh - arch reports what uname -m says" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_M=aarch64
+
+  # Act
+  lib_call platform revamped_platform_arch
+
+  # Assert
+  [ "${output}" = "aarch64" ]
 }
 
-@test "platform.sh - platform_arch echoes a non-empty string" {
-  [[ -n "$(platform_arch)" ]]
+@test "platform.sh - os reports unknown when uname fails" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_FAIL=1
+
+  # Act
+  lib_call platform revamped_platform_os
+
+  # Assert
+  [ "${output}" = "unknown" ]
 }
 
-@test "platform.sh - is_apple_silicon is true on arm64 Darwin" {
-  _PLATFORM_OS_CACHE="Darwin"
-  _PLATFORM_ARCH_CACHE="arm64"
-  is_apple_silicon
+@test "platform.sh - macOS is Darwin and nothing else" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Darwin
+
+  # Act
+  lib_run platform 'revamped_is_macos && ! revamped_is_linux && ! revamped_is_bsd'
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "platform.sh - is_apple_silicon is false on Intel Darwin" {
-  _PLATFORM_OS_CACHE="Darwin"
-  _PLATFORM_ARCH_CACHE="x86_64"
-  ! is_apple_silicon
+@test "platform.sh - Linux is Linux and nothing else" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Linux
+
+  # Act
+  lib_run platform 'revamped_is_linux && ! revamped_is_macos && ! revamped_is_bsd'
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "platform.sh - is_apple_silicon is false on Linux arm64" {
-  _PLATFORM_OS_CACHE="Linux"
-  _PLATFORM_ARCH_CACHE="aarch64"
-  ! is_apple_silicon
+@test "platform.sh - FreeBSD counts as BSD" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=FreeBSD
+
+  # Act
+  lib_call platform revamped_is_bsd
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "platform.sh - platform_os echoes a non-empty string" {
-  [[ -n "$(platform_os)" ]]
+@test "platform.sh - DragonFly counts as BSD" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=DragonFly
+
+  # Act
+  lib_call platform revamped_is_bsd
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "platform.sh - platform_os is stable across calls" {
-  [[ "$(platform_os)" == "$(platform_os)" ]]
+@test "platform.sh - Apple Silicon is Darwin on arm64" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Darwin REVAMPED_TEST_UNAME_M=arm64
+
+  # Act
+  lib_call platform revamped_is_apple_silicon
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "platform.sh - is_macos is true on Darwin" {
-  _PLATFORM_OS_CACHE="Darwin"
-  is_macos
-  ! is_linux || false
-  ! is_bsd
+@test "platform.sh - Intel Darwin is not Apple Silicon" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Darwin REVAMPED_TEST_UNAME_M=x86_64
+
+  # Act
+  lib_call platform revamped_is_apple_silicon
+
+  # Assert
+  [ "${status}" -eq 1 ]
 }
 
-@test "platform.sh - is_linux is true on Linux" {
-  _PLATFORM_OS_CACHE="Linux"
-  is_linux
-  ! is_macos || false
-  ! is_bsd
+@test "platform.sh - Linux on arm64 is not Apple Silicon" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Linux REVAMPED_TEST_UNAME_M=aarch64
+
+  # Act
+  lib_call platform revamped_is_apple_silicon
+
+  # Assert
+  [ "${status}" -eq 1 ]
 }
 
-@test "platform.sh - is_bsd is true on FreeBSD" {
-  _PLATFORM_OS_CACHE="FreeBSD"
-  is_bsd
-}
+@test "platform.sh - repeated checks run uname once per field" {
+  # Arrange
+  export REVAMPED_TEST_UNAME_S=Linux REVAMPED_TEST_UNAME_M=x86_64
 
-@test "platform.sh - is_bsd is true on DragonFly" {
-  _PLATFORM_OS_CACHE="DragonFly"
-  is_bsd
+  # Act
+  lib_run platform 'revamped_is_macos; revamped_is_linux; revamped_is_bsd; revamped_is_apple_silicon; revamped_platform_os'
+
+  # Assert
+  [ "$(grep -cx -- -s "${REVAMPED_TEST_UNAME_LOG}")" -eq 1 ]
+  [ "$(grep -cx -- -m "${REVAMPED_TEST_UNAME_LOG}")" -eq 1 ]
 }

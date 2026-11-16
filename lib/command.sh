@@ -1,10 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_HAS_COMMAND_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_HAS_COMMAND_LOADED=1
+[ -n "${REVAMPED_COMMAND_LOADED:-}" ] && return 0
+REVAMPED_COMMAND_LOADED=1
 
-has_command() {
-  command -v "${1}" >/dev/null 2>&1
+revamped_has_command() {
+  command -v "$1" >/dev/null 2>&1 || return 1
 }
-
-export -f has_command

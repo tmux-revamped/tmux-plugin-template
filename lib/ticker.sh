@@ -156,9 +156,8 @@ ticker_install() {
   if [[ -n "${EPOCHSECONDS:-}" ]]; then
     _cache_now() { printf '%s\n' "${EPOCHSECONDS}"; }
   fi
-  if declare -F platform_os >/dev/null; then
-    platform_os >/dev/null
-    platform_arch >/dev/null
+  if declare -F revamped_platform_detect >/dev/null; then
+    revamped_platform_detect
   fi
 }
 

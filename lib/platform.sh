@@ -1,63 +1,44 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_PLATFORM_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_PLATFORM_LOADED=1
+[ -n "${REVAMPED_PLATFORM_LOADED:-}" ] && return 0
+REVAMPED_PLATFORM_LOADED=1
+REVAMPED_PLATFORM_OS=""
+REVAMPED_PLATFORM_ARCH=""
 
-_PLATFORM_OS_CACHE=""
-_PLATFORM_ARCH_CACHE=""
-
-_platform_detect_os() {
-  if [[ -z "${_PLATFORM_OS_CACHE}" ]]; then
-    _PLATFORM_OS_CACHE="$(uname -s 2>/dev/null || echo "unknown")"
-  fi
+revamped_platform_os() {
+  [ -n "${REVAMPED_PLATFORM_OS}" ] || REVAMPED_PLATFORM_OS=$(uname -s 2>/dev/null) || REVAMPED_PLATFORM_OS=unknown
+  printf '%s\n' "${REVAMPED_PLATFORM_OS:-unknown}"
 }
 
-_platform_detect_arch() {
-  if [[ -z "${_PLATFORM_ARCH_CACHE}" ]]; then
-    _PLATFORM_ARCH_CACHE="$(uname -m 2>/dev/null || echo "unknown")"
-  fi
+revamped_platform_arch() {
+  [ -n "${REVAMPED_PLATFORM_ARCH}" ] || REVAMPED_PLATFORM_ARCH=$(uname -m 2>/dev/null) || REVAMPED_PLATFORM_ARCH=unknown
+  printf '%s\n' "${REVAMPED_PLATFORM_ARCH:-unknown}"
 }
 
-platform_os() {
-  _platform_detect_os
-  echo "${_PLATFORM_OS_CACHE}"
+revamped_platform_detect() {
+  revamped_platform_os >/dev/null
+  revamped_platform_arch >/dev/null
 }
 
-platform_arch() {
-  _platform_detect_arch
-  echo "${_PLATFORM_ARCH_CACHE}"
+revamped_is_macos() {
+  revamped_platform_detect
+  [ "${REVAMPED_PLATFORM_OS}" = Darwin ]
 }
 
-is_apple_silicon() {
-  _platform_detect_os
-  _platform_detect_arch
-  [[ "${_PLATFORM_OS_CACHE}" == "Darwin" && "${_PLATFORM_ARCH_CACHE}" == "arm64" ]]
+revamped_is_linux() {
+  revamped_platform_detect
+  [ "${REVAMPED_PLATFORM_OS}" = Linux ]
 }
 
-is_macos() {
-  _platform_detect_os
-  [[ "${_PLATFORM_OS_CACHE}" == "Darwin" ]]
-}
-
-is_linux() {
-  _platform_detect_os
-  [[ "${_PLATFORM_OS_CACHE}" == "Linux" ]]
-}
-
-is_bsd() {
-  _platform_detect_os
-  case "${_PLATFORM_OS_CACHE}" in
-  *BSD) return 0 ;;
-  DragonFly) return 0 ;;
+revamped_is_bsd() {
+  revamped_platform_detect
+  case "${REVAMPED_PLATFORM_OS}" in
+  *BSD | DragonFly) return 0 ;;
   *) return 1 ;;
   esac
 }
 
-export -f _platform_detect_os
-export -f _platform_detect_arch
-export -f platform_os
-export -f platform_arch
-export -f is_apple_silicon
-export -f is_macos
-export -f is_linux
-export -f is_bsd
+revamped_is_apple_silicon() {
+  revamped_platform_detect
+  [ "${REVAMPED_PLATFORM_OS}" = Darwin ] && [ "${REVAMPED_PLATFORM_ARCH}" = arm64 ]
+}

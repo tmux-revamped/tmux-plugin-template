@@ -89,8 +89,8 @@ cache_render load 5 read_load
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`, `ticker_run`, `ticker_interval` for one background renderer per server |
 | [`lib/publish.sh`](lib/publish.sh) | `publish_add`, `publish_commit` for batched option writes, `publish_escape` to double every `#`, `publish_pad` and `publish_width` for fixed widths |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
-| [`lib/platform.sh`](lib/platform.sh) | `platform_os`, `platform_arch`, `is_macos`, `is_linux`, `is_bsd`, `is_apple_silicon`, each computed once per process |
-| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd`, `revamped_is_apple_silicon`, each computed once per process |
+| [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
 | [`lib/log.sh`](lib/log.sh) | `log_error` |
 | [`lib/core.sh`](lib/core.sh) | the version constant and shared defaults |
 

@@ -1,24 +1,29 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  source "${BATS_TEST_DIRNAME}/../lib/command.sh"
+  harness_setup
 }
 
-teardown() {
-  cleanup_test_environment
+@test "command.sh - has_command is true for a command on PATH" {
+  # Arrange
+  local name=cat
+
+  # Act
+  lib_call command revamped_has_command "${name}"
+
+  # Assert
+  [ "${status}" -eq 0 ]
 }
 
-@test "has-command.sh - has_command is defined" {
-  function_exists has_command
-}
+@test "command.sh - has_command is false for a missing command" {
+  # Arrange
+  local name=revamped-no-such-command
 
-@test "has-command.sh - has_command is true for an existing command" {
-  has_command bash
-}
+  # Act
+  lib_call command revamped_has_command "${name}"
 
-@test "has-command.sh - has_command is false for a missing command" {
-  ! has_command this-command-should-not-exist-abcxyz
+  # Assert
+  [ "${status}" -eq 1 ]
 }

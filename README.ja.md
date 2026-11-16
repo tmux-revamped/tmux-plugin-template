@@ -89,8 +89,8 @@ cache_render load 5 read_load
 | [`lib/ticker.sh`](lib/ticker.sh) | サーバーごとに1つのバックグラウンド描画処理のための`ticker_start`、`ticker_run`、`ticker_interval` |
 | [`lib/publish.sh`](lib/publish.sh) | まとめて書き込むための`publish_add`、`publish_commit`、すべての`#`を二重にする`publish_escape`、固定幅のための`publish_pad`と`publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
-| [`lib/platform.sh`](lib/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
-| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
+| [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
 | [`lib/log.sh`](lib/log.sh) | `log_error` |
 | [`lib/core.sh`](lib/core.sh) | バージョンの定数と共通の既定値 |
 

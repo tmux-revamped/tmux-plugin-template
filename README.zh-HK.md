@@ -89,8 +89,8 @@ cache_render load 5 read_load
 | [`lib/ticker.sh`](lib/ticker.sh) | `ticker_start`、`ticker_run`、`ticker_interval`，用於每部伺服器一個背景繪製器 |
 | [`lib/publish.sh`](lib/publish.sh) | 用於批次寫入選項的 `publish_add`、`publish_commit`，把每個 `#` 加倍的 `publish_escape`，用於固定寬度的 `publish_pad` 和 `publish_width` |
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`，視窗和窗格選項輔助函數，窗格和視窗尺寸讀取 |
-| [`lib/platform.sh`](lib/platform.sh) | `platform_os`、`platform_arch`、`is_macos`、`is_linux`、`is_bsd`、`is_apple_silicon`，每個進程只計算一次 |
-| [`lib/command.sh`](lib/command.sh) | `has_command` |
+| [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`，每個進程只計算一次 |
+| [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
 | [`lib/log.sh`](lib/log.sh) | `log_error` |
 | [`lib/core.sh`](lib/core.sh) | 版本常數和共用預設值 |
 
