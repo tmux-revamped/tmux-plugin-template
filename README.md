@@ -91,7 +91,7 @@ cache_render load 5 read_load
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`, `revamped_tmux_set`, `revamped_tmux_unset`, window and pane option helpers, pane and window size getters |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`, `revamped_platform_arch`, `revamped_is_macos`, `revamped_is_linux`, `revamped_is_bsd`, `revamped_is_apple_silicon`, each computed once per process |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
-| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
 | [`lib/core.sh`](lib/core.sh) | the version constant and shared defaults |
 
 Any text that comes from outside the user's config, such as a process name, a network response or a file name, goes through `publish_escape` before it reaches the status line, so it cannot run as a tmux format.
@@ -109,7 +109,7 @@ The template binds no key and reads no option of its own. The library reads thes
 | `@<prefix>_<metric>_width` | publish | explicit width for one value |
 | `@<namespace>_enable_logging` | error log | `1` writes to `~/.tmux/<namespace>-logs/<namespace>.log`, rotated past 1 MB |
 
-`<prefix>` is `CACHE_PREFIX` for the cache and the argument passed to the ticker and publish functions. `<namespace>` is `PLUGIN_LOG_NS` with `-` turned into `_`.
+`<prefix>` is `CACHE_PREFIX` for the cache and the argument passed to the ticker and publish functions. `<namespace>` is `REVAMPED_LOG_NS` with `-` turned into `_`.
 
 ## How it works
 

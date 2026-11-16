@@ -1,52 +1,47 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-[[ -n "${_TMUX_PLUGIN_ERROR_LOGGER_LOADED:-}" ]] && return 0
-_TMUX_PLUGIN_ERROR_LOGGER_LOADED=1
+[ -n "${REVAMPED_LOG_LOADED:-}" ] && return 0
+REVAMPED_LOG_LOADED=1
 
-PLUGIN_LOG_NS="${PLUGIN_LOG_NS:-tmux-plugin}"
-PLUGIN_LOG_DIR="${PLUGIN_LOG_DIR:-${HOME}/.tmux/${PLUGIN_LOG_NS}-logs}"
-PLUGIN_LOG_FILE="${PLUGIN_LOG_FILE:-${PLUGIN_LOG_DIR}/${PLUGIN_LOG_NS}.log}"
-PLUGIN_LOG_OPTION="${PLUGIN_LOG_OPTION:-@${PLUGIN_LOG_NS//-/_}_enable_logging}"
-PLUGIN_MAX_LOG_SIZE="${PLUGIN_MAX_LOG_SIZE:-1048576}"
-PLUGIN_MAX_LOG_LINES="${PLUGIN_MAX_LOG_LINES:-1000}"
+# shellcheck source=SCRIPTDIR/tmux.sh
+. "${REVAMPED_LIB:?}/tmux.sh"
 
-_logging_enabled() {
-  [[ "$(tmux show-option -gqv "${PLUGIN_LOG_OPTION}" 2>/dev/null)" == "1" ]]
+REVAMPED_LOG_NS="${REVAMPED_LOG_NS:-tmux-plugin}"
+REVAMPED_LOG_DIR="${REVAMPED_LOG_DIR:-${HOME}/.tmux/${REVAMPED_LOG_NS}-logs}"
+REVAMPED_LOG_FILE="${REVAMPED_LOG_FILE:-${REVAMPED_LOG_DIR}/${REVAMPED_LOG_NS}.log}"
+REVAMPED_LOG_OPTION="${REVAMPED_LOG_OPTION:-@$(printf '%s' "${REVAMPED_LOG_NS}" | tr '-' '_')_enable_logging}"
+REVAMPED_LOG_MAX_SIZE="${REVAMPED_LOG_MAX_SIZE:-1048576}"
+REVAMPED_LOG_MAX_LINES="${REVAMPED_LOG_MAX_LINES:-1000}"
+
+revamped_log_enabled() {
+  revamped_log_enabled_value=$(revamped_tmux_get "${REVAMPED_LOG_OPTION}")
+  [ "${revamped_log_enabled_value}" = 1 ]
 }
 
-_rotate_log() {
-  [[ -f "${PLUGIN_LOG_FILE}" ]] || return 0
-  local size
-  size=$(stat -f%z "${PLUGIN_LOG_FILE}" 2>/dev/null ||
-    stat -c%s "${PLUGIN_LOG_FILE}" 2>/dev/null ||
-    echo 0)
-  [[ "${size}" =~ ^[0-9]+$ ]] || return 0
-  if ((size > PLUGIN_MAX_LOG_SIZE)); then
-    tail -n "${PLUGIN_MAX_LOG_LINES}" "${PLUGIN_LOG_FILE}" \
-      >"${PLUGIN_LOG_FILE}.rotated" 2>/dev/null &&
-      mv "${PLUGIN_LOG_FILE}.rotated" "${PLUGIN_LOG_FILE}" 2>/dev/null ||
-      true
-  fi
+revamped_log_size() {
+  stat -c %s -- "$1" 2>/dev/null || stat -f %z -- "$1" 2>/dev/null || printf '0\n'
 }
 
-log_error() {
-  local component="${1:-unknown}"
-  local message="${2:-}"
-  [[ -z "${message}" ]] && return 0
-  component="${component//[^a-zA-Z0-9_-]/}"
-  _logging_enabled || return 0
-
-  mkdir -p "${PLUGIN_LOG_DIR}" 2>/dev/null || return 0
-  [[ -w "${PLUGIN_LOG_DIR}" ]] || return 0
-
-  local timestamp
-  timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "")
-  [[ -z "${timestamp}" ]] && return 0
-
-  echo "[${timestamp}] [${component}] ${message}" >>"${PLUGIN_LOG_FILE}" 2>/dev/null || true
-  _rotate_log
+revamped_log_rotate() {
+  [ -f "${REVAMPED_LOG_FILE}" ] || return 0
+  revamped_log_rotate_size=$(revamped_log_size "${REVAMPED_LOG_FILE}")
+  case "${revamped_log_rotate_size}" in
+  '' | *[!0-9]*) return 0 ;;
+  *) ;;
+  esac
+  [ "${revamped_log_rotate_size}" -gt "${REVAMPED_LOG_MAX_SIZE}" ] || return 0
+  tail -n "${REVAMPED_LOG_MAX_LINES}" "${REVAMPED_LOG_FILE}" >"${REVAMPED_LOG_FILE}.rotated" 2>/dev/null &&
+    mv -f "${REVAMPED_LOG_FILE}.rotated" "${REVAMPED_LOG_FILE}" 2>/dev/null
+  return 0
 }
 
-export -f _logging_enabled
-export -f _rotate_log
-export -f log_error
+revamped_log_error() {
+  [ -n "${2:-}" ] || return 0
+  revamped_log_enabled || return 0
+  revamped_log_error_component=$(printf '%s' "${1:-unknown}" | tr -cd 'A-Za-z0-9_-')
+  mkdir -p "${REVAMPED_LOG_DIR}" 2>/dev/null || return 0
+  [ -w "${REVAMPED_LOG_DIR}" ] || return 0
+  revamped_log_error_time=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null) || return 0
+  printf '[%s] [%s] %s\n' "${revamped_log_error_time}" "${revamped_log_error_component}" "$2" >>"${REVAMPED_LOG_FILE}" 2>/dev/null || return 0
+  revamped_log_rotate
+}

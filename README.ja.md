@@ -91,7 +91,7 @@ cache_render load 5 read_load
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`、ウィンドウとペインのオプションの補助関数、ペインとウィンドウの大きさの取得 |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`。いずれもプロセスごとに1回だけ計算します |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
-| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
 | [`lib/core.sh`](lib/core.sh) | バージョンの定数と共通の既定値 |
 
 プロセス名、ネットワークの応答、ファイル名など、ユーザーの設定以外から来る文字列は、ステータスラインに届く前に`publish_escape`を通します。これでtmuxのフォーマットとして実行されることはありません。
@@ -109,7 +109,7 @@ cache_render load 5 read_load
 | `@<prefix>_<metric>_width` | publish | 1つの値の幅を直接指定 |
 | `@<namespace>_enable_logging` | エラーログ | `1`で`~/.tmux/<namespace>-logs/<namespace>.log`に書き込み、1 MBを超えるとローテーション |
 
-`<prefix>`は、キャッシュでは`CACHE_PREFIX`、tickerとpublishの関数では渡した引数です。`<namespace>`は`PLUGIN_LOG_NS`の`-`を`_`に置き換えたものです。
+`<prefix>`は、キャッシュでは`CACHE_PREFIX`、tickerとpublishの関数では渡した引数です。`<namespace>`は`REVAMPED_LOG_NS`の`-`を`_`に置き換えたものです。
 
 ## 仕組み
 

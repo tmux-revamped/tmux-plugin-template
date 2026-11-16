@@ -1,63 +1,108 @@
 #!/usr/bin/env bats
 
-load "${BATS_TEST_DIRNAME}/helpers.bash"
+load "${BATS_TEST_DIRNAME}/harness.bash"
 
 setup() {
-  setup_test_environment
-  export PLUGIN_LOG_NS="test-rev"
-  export PLUGIN_LOG_DIR="${TEST_TMPDIR}/logs"
-  export PLUGIN_LOG_FILE="${PLUGIN_LOG_DIR}/test.log"
-  export PLUGIN_LOG_OPTION="@test_rev_enable_logging"
-  source "${BATS_TEST_DIRNAME}/../lib/log.sh"
+  harness_setup
+  export REVAMPED_LOG_NS=test-rev
+  export REVAMPED_LOG_DIR="${BATS_TEST_TMPDIR}/logs"
+  export REVAMPED_LOG_FILE="${REVAMPED_LOG_DIR}/test.log"
+  export REVAMPED_TEST_TIMESTAMP="2026-01-15 14:30:00"
 }
 
-teardown() {
-  cleanup_test_environment
-}
-
-@test "error-logger.sh - functions are defined" {
-  function_exists log_error
-  function_exists _logging_enabled
-  function_exists _rotate_log
-}
-
-@test "error-logger.sh - log_error is a no-op for an empty message" {
-  log_error comp ""
-  [[ ! -f "${PLUGIN_LOG_FILE}" ]]
-}
-
-@test "error-logger.sh - log_error writes nothing when logging is disabled" {
-  log_error comp "hello"
-  [[ ! -f "${PLUGIN_LOG_FILE}" ]]
-}
-
-@test "error-logger.sh - log_error writes a line when logging is enabled" {
-  tmux set-option -gq @test_rev_enable_logging 1
-  log_error startup "hello world"
-  [[ -f "${PLUGIN_LOG_FILE}" ]] || false
-  grep -q "startup" "${PLUGIN_LOG_FILE}"
-  grep -q "hello world" "${PLUGIN_LOG_FILE}"
-}
-
-@test "error-logger.sh - log_error sanitizes the component name" {
-  tmux set-option -gq @test_rev_enable_logging 1
-  log_error "bad;rm /" "msg"
-  grep -q "badrm" "${PLUGIN_LOG_FILE}"
-}
-
-@test "error-logger.sh - _rotate_log trims an oversized log" {
+@test "log.sh - an empty message writes nothing" {
   # Arrange
   tmux set-option -gq @test_rev_enable_logging 1
-  export PLUGIN_MAX_LOG_SIZE=10
-  export PLUGIN_MAX_LOG_LINES=2
-  mkdir -p "${PLUGIN_LOG_DIR}"
-  printf 'l1\nl2\nl3\nl4\nl5\n' >"${PLUGIN_LOG_FILE}"
 
   # Act
-  log_error comp "trigger"
+  lib_call log revamped_log_error comp ""
 
   # Assert
-  local lines
-  lines=$(wc -l <"${PLUGIN_LOG_FILE}" | tr -d ' ')
-  [[ "${lines}" -le 2 ]]
+  [ "${status}" -eq 0 ]
+  [ ! -e "${REVAMPED_LOG_FILE}" ]
+}
+
+@test "log.sh - nothing is written while logging is off" {
+  # Arrange
+  local message=hello
+
+  # Act
+  lib_call log revamped_log_error comp "${message}"
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ ! -e "${REVAMPED_LOG_FILE}" ]
+}
+
+@test "log.sh - an enabled log gets one stamped line" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+
+  # Act
+  lib_call log revamped_log_error startup "hello world"
+
+  # Assert
+  [ "$(cat "${REVAMPED_LOG_FILE}")" = "[2026-01-15 14:30:00] [startup] hello world" ]
+}
+
+@test "log.sh - the component keeps only letters, digits, dashes and underscores" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+
+  # Act
+  lib_call log revamped_log_error "bad;rm /" msg
+
+  # Assert
+  [ "$(cat "${REVAMPED_LOG_FILE}")" = "[2026-01-15 14:30:00] [badrm] msg" ]
+}
+
+@test "log.sh - a log past its size keeps only its newest lines" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+  export REVAMPED_LOG_MAX_SIZE=10 REVAMPED_LOG_MAX_LINES=2
+  mkdir -p "${REVAMPED_LOG_DIR}"
+  printf 'l1\nl2\nl3\nl4\nl5\n' >"${REVAMPED_LOG_FILE}"
+
+  # Act
+  lib_call log revamped_log_error comp trigger
+
+  # Assert
+  [ "$(cat "${REVAMPED_LOG_FILE}")" = "$(printf '%s\n%s' l5 '[2026-01-15 14:30:00] [comp] trigger')" ]
+}
+
+@test "log.sh - a log within its size is left whole" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+  mkdir -p "${REVAMPED_LOG_DIR}"
+  printf 'l1\nl2\n' >"${REVAMPED_LOG_FILE}"
+
+  # Act
+  lib_call log revamped_log_error comp trigger
+
+  # Assert
+  [ "$(wc -l <"${REVAMPED_LOG_FILE}" | tr -d ' ')" -eq 3 ]
+}
+
+@test "log.sh - an unwritable log folder writes nothing and succeeds" {
+  # Arrange
+  tmux set-option -gq @test_rev_enable_logging 1
+  export REVAMPED_LOG_DIR=/dev/null/logs REVAMPED_LOG_FILE=/dev/null/logs/test.log
+
+  # Act
+  lib_call log revamped_log_error comp msg
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ -z "${output}" ]
+}
+
+@test "log.sh - the option name comes from the namespace" {
+  # Arrange
+  unset REVAMPED_LOG_OPTION
+
+  # Act
+  lib_run log 'printf "%s\n" "${REVAMPED_LOG_OPTION}"'
+
+  # Assert
+  [ "${output}" = "@test_rev_enable_logging" ]
 }

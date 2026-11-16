@@ -91,7 +91,7 @@ cache_render load 5 read_load
 | [`lib/tmux.sh`](lib/tmux.sh) | `revamped_tmux_get`、`revamped_tmux_set`、`revamped_tmux_unset`，窗口和窗格选项辅助函数，窗格和窗口尺寸获取 |
 | [`lib/platform.sh`](lib/platform.sh) | `revamped_platform_os`、`revamped_platform_arch`、`revamped_is_macos`、`revamped_is_linux`、`revamped_is_bsd`、`revamped_is_apple_silicon`，每个进程只计算一次 |
 | [`lib/command.sh`](lib/command.sh) | `revamped_has_command` |
-| [`lib/log.sh`](lib/log.sh) | `log_error` |
+| [`lib/log.sh`](lib/log.sh) | `revamped_log_error` |
 | [`lib/core.sh`](lib/core.sh) | 版本常量和共享默认值 |
 
 来自用户配置之外的文本，例如进程名、网络响应或文件名，在到达状态栏之前都要经过 `publish_escape`，这样它就无法作为 tmux 格式执行。
@@ -109,7 +109,7 @@ cache_render load 5 read_load
 | `@<prefix>_<metric>_width` | publish | 单个值的显式宽度 |
 | `@<namespace>_enable_logging` | 错误日志 | 设为 `1` 时写入 `~/.tmux/<namespace>-logs/<namespace>.log`，超过 1 MB 后轮转 |
 
-对缓存而言，`<prefix>` 是 `CACHE_PREFIX`；对 ticker 和 publish 函数而言，是传入的参数。`<namespace>` 是把 `PLUGIN_LOG_NS` 中的 `-` 换成 `_` 的结果。
+对缓存而言，`<prefix>` 是 `CACHE_PREFIX`；对 ticker 和 publish 函数而言，是传入的参数。`<namespace>` 是把 `REVAMPED_LOG_NS` 中的 `-` 换成 `_` 的结果。
 
 ## 工作原理
 
