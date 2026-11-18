@@ -59,7 +59,7 @@ Screenshot accent.png
 Sleep 1s
 Hide
 Escape
-Sleep 1s
+Sleep 2s
 Type "export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/Users/Shared/demo/bin:${SCREENS_REPO}/bin"
 Enter
 Type "clear"
