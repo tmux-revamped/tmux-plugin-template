@@ -240,6 +240,8 @@ graph LR
 | `make install` | ツール、manページ、補完を`PREFIX`の下に置きます |
 | `make new-member NAME=<name>` | 新しいメンバー。新しいプラグインの始め方の節を参照 |
 
+macOS では、`brew bundle` を実行すると、これらのターゲットが使うツールがすべて [`Brewfile`](Brewfile) からインストールされます。
+
 [`test/docs.bats`](test/docs.bats)は、このREADMEの相対リンクが存在しないパスを指すと失敗します。
 
 コミットはConventional Commitsの形式に従い、そのまま`main`に入ります。`main`で`ci`が成功すると、`release.yml`がsemantic-releaseを実行します。前回のタグ以降に`feat`か`fix`があればリリースを公開し、バージョン定数を更新し、変更内容を[`CHANGELOG.md`](CHANGELOG.md)に追加します。

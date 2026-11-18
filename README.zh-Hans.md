@@ -240,6 +240,8 @@ graph LR
 | `make install` | 把工具、man 手册和补全安装到 `PREFIX` 下 |
 | `make new-member NAME=<name>` | 新成员，见「开始一个新插件」 |
 
+在 macOS 上，运行 `brew bundle` 会根据 [`Brewfile`](Brewfile) 安装这些目标用到的所有工具。
+
 当这份 README 中的相对链接指向不存在的路径时，[`test/docs.bats`](test/docs.bats) 会失败。
 
 提交遵循 Conventional Commits 格式，直接进入 `main`。`main` 上的 `ci` 通过后，`release.yml` 运行 semantic-release：自上一个标签以来的每个 `feat` 或 `fix` 都会发布新版本，更新版本常量，并把说明写进 [`CHANGELOG.md`](CHANGELOG.md)。
