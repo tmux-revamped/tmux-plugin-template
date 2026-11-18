@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.2...v1.2.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* stop counting some characters twice ([5a0da7e](https://github.com/tmux-revamped/tmux-plugin-template/commit/5a0da7eb2345946e59a14a0b78c1e9c9c4f53dd0))
+
 ## [1.2.2](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.1...v1.2.2) (2026-11-16)
 
 
