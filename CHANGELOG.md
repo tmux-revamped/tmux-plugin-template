@@ -1,5 +1,19 @@
 # Changelog
 
+# [1.3.0](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.3...v1.3.0) (2026-11-19)
+
+
+### Bug Fixes
+
+* fold a table wider than the terminal ([b3420bd](https://github.com/tmux-revamped/tmux-plugin-template/commit/b3420bdc95de868c469d10d088667ec6478419a4))
+* read the grep of macOS as bsd in doctor ([4be14e2](https://github.com/tmux-revamped/tmux-plugin-template/commit/4be14e287df06a4e0ebbee32d8dfc192ce6e91d7))
+* stop a recording that hangs ([8ba1edf](https://github.com/tmux-revamped/tmux-plugin-template/commit/8ba1edfbbc6b1000f8ce7e46537574b7b24f464d))
+
+
+### Features
+
+* add a settings row to the doctor library ([8bf672b](https://github.com/tmux-revamped/tmux-plugin-template/commit/8bf672bfc923cee8654906744dafff7d51150b36))
+
 ## [1.2.3](https://github.com/tmux-revamped/tmux-plugin-template/compare/v1.2.2...v1.2.3) (2026-11-18)
 
 
