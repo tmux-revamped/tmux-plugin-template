@@ -20,6 +20,7 @@ Every member holds these without exception. This file is what enforces them: a r
 - **Lean.** A file, a section or a step stays only while something needs it. Nothing restates this file, and nothing exists only to police it.
 - **No aliases.** A renamed option, command, key or file keeps no alias, and no compatibility shim exists: the old name stops working in the release that renames it.
 - **Nothing beyond the plugin.** A repository holds the plugin, its tests, CI, its docs, [`AGENTS.md`](AGENTS.md), this file, and the coding agent's instruction file, which only imports those two. No family folder, no family tooling, no AI tooling such as agent definitions, prompts or editor assistant settings.
+- **A rewrite keeps every value.** A rewrite or a rename keeps every value the old version read for a setting, with its unit: each spelling of on and off, each word such as `off` or `none`, a number in the unit it had. Dropping a value or changing a unit is a breaking change the owner decides; it never follows from the alias rule, which is about names.
 - **Both platforms.** Every feature works in full on Linux and on macOS, as Platforms describes.
 - **doctor in every member.** Every member has `bin/<tool>`, which answers `help`, `version` and `doctor` as Commands describes, and `doctor` names every dependency with its path and version.
 - **gum interface.** Every member draws its terminal interface with gum, and where gum cannot draw it falls back byte for byte to the plain interface, as Terminal interface describes.
@@ -205,6 +206,8 @@ The flavor is `gnu`, `uutils`, `bsd`, `mawk`, `busybox` or `unknown`. It comes f
 
 `doctor` also reports the tmux version, every source a placeholder reads and whether the host has it, the notifier under Notifications, and every default key the plugin skipped because the person had already bound it. A new dependency gets its `doctor` row, with its flavor when it is a core tool, in the same change.
 
+`doctor` prints a `settings` row. Each member lists in `<PREFIX>_KINDS`, in `lib/state.sh`, what every switch, number and choice among its settings accepts, read from how the member compares that setting, and `revamped_doctor_settings` checks the value in force, whether a tmux option, the environment or the command line gave it. A value outside the list is named as `name=value` with the state `warn`, because a status line cannot say that an option was ignored. A setting that takes free text, a key or a colour has no kind, and an empty value means the default and is never named. A setting that is added or changed gets its kind in the same change.
+
 ## Toolsets
 
 Every tool that can be installed in more than one version on a supported system is tested in every one of them. Every member runs on the six toolsets below, and CI runs the whole suite on each:
@@ -282,6 +285,7 @@ The issue forms under `.github/ISSUE_TEMPLATE/` are identical in every member: a
 - The entry point is loaded in tests as TPM loads it, through `/bin/sh` and `run-shell`, never sourced into the test's shell.
 - Every key binding has a test that presses it through a real client, a second tmux attached to the test server, and checks its effect. A test that calls the command directly never sees what tmux does to the binding's own command, such as a format left unexpanded in a popup.
 - Such a test sends each chord, such as `prefix h`, in its own `send-keys` call: chords that arrive in one burst are taken as pasted text on some tmux versions and skip the bindings. It also waits until a popup has closed before typing into the pane under it, since keys sent while the popup is open go to the popup.
+- The private server of such a test sets `assume-paste-time` to 0, which the shared `setup_tmux_server` does: tmux 3.6 takes keys that arrive less than a millisecond apart for pasted text and runs no binding for them, and on a loaded runner separate `send-keys` calls still arrive in one burst.
 - A file that a test file writes when it loads into a folder the whole run shares is written to a temporary file beside it and renamed into place. Test files run in parallel, and a file rewritten in place can be read empty by a test in another file.
 - A test that hides a tool runs the program through `harness_hide`, a folder of links to every program on PATH except the hidden ones. It links one PATH folder per `ln -s` call: one call per program forks thousands of times on a Homebrew Mac.
 - `bats` tests drive the real tools and the real tmux, and inject faults only through small wrappers on `PATH`. A member's test harness never defines a shell function with the name of a command another test stubs on `PATH`, or a test that stubs it unsets the function first.
@@ -308,6 +312,7 @@ The issue forms under `.github/ISSUE_TEMPLATE/` are identical in every member: a
 - A pattern substitution never takes an unquoted expansion as its replacement: bash 5.2 rewrites it at every `&` and bash 3.2 at every backslash. It never takes a quoted one inside a double-quoted string either: bash 3.2 keeps those quotes, so `"${x//"#"/"##"}"` turns `a#b` into `a"##"b` there. A character is doubled with `sed` or a loop.
 - A file's size comes from `stat -c %s -- FILE`, or `stat -f %z -- FILE` where `stat` is BSD's, never `wc -c <file`: Ubuntu's BusyBox `wc` counts in 32 bits.
 - A byte above 0x7F is never matched with a bracket expression of raw bytes: zsh on Linux misses 0x80 to 0x9F there, so `ß` and most CJK characters count twice. It is searched for in a string of those bytes, as `case "${bytes}" in *"${byte}"*`.
+- A shell pattern never matches outside text against a letter range such as `A-Z`: bash 3.2 in a UTF-8 locale takes an accented letter such as `ü` for part of the range, so a check for plain characters lets it through. The letters are written out one by one, or the comparison runs under `LC_ALL=C`. A digit range is safe.
 - A helper is never signalled right after it is started and then waited for: a signal that arrives before a background helper has become its program is recorded by the shell and dropped when the program starts, so the helper lives on and the `wait` never returns. The check that would stop the helper runs before it is started.
 - No comments in source, apart from tool directives and the test markers.
 - Make targets, with the same meaning in every member:
